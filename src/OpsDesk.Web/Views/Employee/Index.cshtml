@@ -1,114 +1,166 @@
 @model OpsDesk.Web.ViewModels.Employee.EmployeeListViewModel
 @using OpsDesk.Core.Authorization
 @{
-    ViewData["Title"] = "Nhân viên";
+    ViewData["Title"] = "Employees";
 }
 
-<div class="d-flex align-items-center justify-content-between mb-4">
-    <h1 class="h4 fw-bold mb-0"><i class="bi bi-person-badge text-primary me-2"></i>Nhân viên</h1>
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold py-1 mb-0">Staff & Employee Directory</h4>
+        <p class="text-muted mb-0">Manage employee accounts, department allocations, and access status.</p>
+    </div>
     @if (User.HasClaim("Permission", Permissions.Employee.Create))
     {
-        <a asp-action="Create" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-lg me-1"></i>Thêm nhân viên
+        <a asp-action="Create" class="btn btn-primary d-flex align-items-center">
+            <i class="bx bx-user-plus me-1"></i>Add Employee
         </a>
     }
 </div>
 
-<!-- Bộ lọc -->
-<div class="card mb-4">
-    <div class="card-body py-3">
-        <form method="get" class="row g-2 align-items-end">
+<!-- Filters Card -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
             <div class="col-md-5">
-                <label class="form-label">Tìm kiếm</label>
-                <input name="search" value="@Model.Search" class="form-control form-control-sm"
-                       placeholder="Tên hoặc email..." />
+                <label class="form-label small fw-semibold">Search Staff</label>
+                <div class="input-group input-group-merge">
+                    <span class="input-group-text"><i class="bx bx-search"></i></span>
+                    <input name="search" value="@Model.Search" class="form-control"
+                           placeholder="Full name or email address..." />
+                </div>
             </div>
             <div class="col-md-3">
-                <label class="form-label">Trạng thái</label>
-                <select name="isActive" class="form-select form-select-sm">
-                    <option value="">-- Tất cả --</option>
-                    <option value="true" selected="@(Model.IsActive == true)">Đang hoạt động</option>
-                    <option value="false" selected="@(Model.IsActive == false)">Đã vô hiệu hóa</option>
+                <label class="form-label small fw-semibold">Account Status</label>
+                <select name="isActive" class="form-select">
+                    <option value="">-- All Accounts --</option>
+                    <option value="true" selected="@(Model.IsActive == true)">Active Accounts</option>
+                    <option value="false" selected="@(Model.IsActive == false)">Deactivated Accounts</option>
                 </select>
             </div>
             <div class="col-md-2">
-                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
-                    <i class="bi bi-search me-1"></i>Lọc
+                <button type="submit" class="btn btn-primary w-100 d-flex align-items-center justify-content-center">
+                    <i class="bx bx-filter-alt me-1"></i>Filter
                 </button>
             </div>
             <div class="col-md-2">
-                <a asp-action="Index" class="btn btn-outline-secondary btn-sm w-100">Xóa lọc</a>
+                <a asp-action="Index" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center">
+                    <i class="bx bx-reset me-1"></i>Reset
+                </a>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Bảng -->
-<div class="card">
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0">
+<!-- Employee Table Card -->
+<div class="card shadow-sm border-0">
+    <div class="table-responsive text-nowrap">
+        <table class="table table-hover">
             <thead>
                 <tr>
-                    <th>Họ tên</th>
-                    <th>Email</th>
-                    <th>Phòng ban</th>
-                    <th>Vai trò</th>
-                    <th>Trạng thái</th>
-                    <th>Ngày tạo</th>
-                    <th class="text-end">Thao tác</th>
+                    <th>Employee Name</th>
+                    <th>Email Address</th>
+                    <th>Department</th>
+                    <th>Primary Role</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th class="text-end">Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="table-border-bottom-0">
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bx bx-user-x display-4 d-block mb-2 text-secondary"></i>
+                            No employees found matching the criteria.
+                        </td>
+                    </tr>
+                }
                 @foreach (var emp in Model.Items)
                 {
                     <tr>
-                        <td class="fw-semibold">@emp.FullName</td>
-                        <td class="text-muted">@emp.Email</td>
-                        <td>@(emp.DepartmentName ?? "—")</td>
                         <td>
-                            @if (emp.RoleName is not null)
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-sm me-3">
+                                    <span class="avatar-initial rounded-circle @(emp.IsActive ? "bg-label-primary" : "bg-label-secondary")">
+                                        @(emp.FullName.Length > 0 ? emp.FullName[0].ToString().ToUpper() : "E")
+                                    </span>
+                                </div>
+                                <span class="fw-semibold text-dark">@emp.FullName</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="text-muted">@emp.Email</span>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(emp.DepartmentName))
                             {
-                                <span class="badge bg-secondary">@emp.RoleName</span>
+                                <span class="badge bg-label-info">@emp.DepartmentName</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted small fst-italic">—</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(emp.RoleName))
+                            {
+                                foreach (var role in emp.RoleName.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                                {
+                                    <span class="badge bg-label-primary text-uppercase me-1 mb-1">@role</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="badge bg-label-secondary">None</span>
                             }
                         </td>
                         <td>
                             @if (emp.IsActive)
                             {
-                                <span class="badge bg-success-subtle text-success border border-success-subtle">Hoạt động</span>
+                                <span class="badge bg-label-success">Active</span>
                             }
                             else
                             {
-                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Vô hiệu</span>
+                                <span class="badge bg-label-danger">Deactivated</span>
                             }
                         </td>
-                        <td class="text-muted small">@emp.CreatedAt.ToString("dd/MM/yyyy")</td>
+                        <td>
+                            <small class="text-muted">@emp.CreatedAt.ToString("yyyy-MM-dd")</small>
+                        </td>
                         <td class="text-end">
-                            <div class="d-flex gap-1 justify-content-end">
+                            <div class="d-flex gap-1 justify-content-end align-items-center">
                                 @if (User.HasClaim("Permission", Permissions.Employee.Update))
                                 {
-                                    <a asp-action="Edit" asp-route-id="@emp.Id"
-                                       class="btn btn-outline-primary btn-sm">
-                                        <i class="bi bi-pencil"></i>
+                                    <a asp-action="Edit" asp-route-id="@emp.Id" class="btn btn-sm btn-icon btn-outline-primary" title="Edit">
+                                        <i class="bx bx-edit"></i>
                                     </a>
                                 }
                                 @if (User.HasClaim("Permission", Permissions.Employee.Deactivate))
                                 {
                                     if (emp.IsActive)
                                     {
-                                        <form asp-action="Deactivate" asp-route-id="@emp.Id" method="post"
-                                              onsubmit="return confirm('Vô hiệu hóa tài khoản @emp.FullName?')">
+                                        <form asp-action="Deactivate" asp-route-id="@emp.Id" method="post" class="d-inline"
+                                              data-confirm="Are you sure you want to deactivate account @emp.FullName?"
+                                              data-confirm-title="Deactivate Employee"
+                                              data-confirm-btn="Deactivate"
+                                              data-confirm-class="btn-danger">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Vô hiệu hóa">
-                                                <i class="bi bi-person-x"></i>
+                                            <button type="submit" class="btn btn-sm btn-icon btn-outline-danger" title="Deactivate">
+                                                <i class="bx bx-user-minus"></i>
                                             </button>
                                         </form>
                                     }
                                     else
                                     {
-                                        <form asp-action="Activate" asp-route-id="@emp.Id" method="post">
+                                        <form asp-action="Reactivate" asp-route-id="@emp.Id" method="post" class="d-inline"
+                                              data-confirm="Are you sure you want to reactivate account @emp.FullName?"
+                                              data-confirm-title="Reactivate Employee"
+                                              data-confirm-btn="Reactivate"
+                                              data-confirm-class="btn-success">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-outline-success btn-sm" title="Kích hoạt">
-                                                <i class="bi bi-person-check"></i>
+                                            <button type="submit" class="btn btn-sm btn-icon btn-outline-success" title="Reactivate">
+                                                <i class="bx bx-user-check"></i>
                                             </button>
                                         </form>
                                     }
@@ -117,35 +169,34 @@
                         </td>
                     </tr>
                 }
-                @if (!Model.Items.Any())
-                {
-                    <tr>
-                        <td colspan="7" class="text-center text-muted py-4">
-                            <i class="bi bi-inbox me-2"></i>Không tìm thấy nhân viên nào.
-                        </td>
-                    </tr>
-                }
             </tbody>
         </table>
     </div>
+
     @if (Model.TotalPages > 1)
     {
-        <div class="card-footer d-flex justify-content-between align-items-center">
-            <small class="text-muted">
-                Hiển thị @Model.Items.Count / @Model.TotalCount nhân viên
-            </small>
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="text-muted small">
+                Showing page @Model.Page of @Model.TotalPages (Total @Model.TotalCount employees)
+            </div>
             <nav>
                 <ul class="pagination pagination-sm mb-0">
-                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search" asp-route-isActive="@Model.IsActive">
+                            <i class="bx bx-chevron-left"></i>
+                        </a>
+                    </li>
+                    @for (int p = 1; p <= Model.TotalPages; p++)
                     {
-                        <li class="page-item @(i == Model.Page ? "active" : "")">
-                            <a class="page-link"
-                               asp-action="Index"
-                               asp-route-page="@i"
-                               asp-route-search="@Model.Search"
-                               asp-route-isActive="@Model.IsActive">@i</a>
+                        <li class="page-item @(p == Model.Page ? "active" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@p" asp-route-search="@Model.Search" asp-route-isActive="@Model.IsActive">@p</a>
                         </li>
                     }
+                    <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search" asp-route-isActive="@Model.IsActive">
+                            <i class="bx bx-chevron-right"></i>
+                        </a>
+                    </li>
                 </ul>
             </nav>
         </div>

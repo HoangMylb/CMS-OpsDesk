@@ -1,165 +1,373 @@
+@using System.Security.Claims
+@{
+    string currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    string currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var userEmail = User.Identity?.Name ?? "User";
+    var userRoles = ((ClaimsIdentity)User.Identity!).Claims
+        .Where(c => c.Type == ClaimTypes.Role)
+        .Select(c => c.Value)
+        .ToList();
+    var primaryRole = userRoles.FirstOrDefault() ?? "Staff";
+}
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en" class="light-style layout-menu-fixed" dir="ltr" data-theme="theme-default" data-assets-path="/lib/sneat/" data-template="vertical-menu-template-free">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="OpsDesk — Hệ thống quản lý hỗ trợ khách hàng nội bộ" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+    <meta name="description" content="OpsDesk — Internal Customer Support & Operations System" />
     <title>@ViewData["Title"] — OpsDesk</title>
 
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet" />
 
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Icons -->
+    <link rel="stylesheet" href="~/lib/sneat/vendor/fonts/iconify-icons.css" />
 
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="~/lib/sneat/vendor/css/core.css" />
+    <link rel="stylesheet" href="~/lib/sneat/css/demo.css" />
+    <link rel="stylesheet" href="~/lib/sneat/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
+
+    <!-- Helpers -->
+    <script src="~/lib/sneat/vendor/js/helpers.js"></script>
+    <script src="~/lib/sneat/js/config.js"></script>
+
+    @await RenderSectionAsync("Styles", required: false)
 </head>
+
 <body>
+    <!-- Layout wrapper -->
+    <div class="layout-wrapper layout-content-navbar">
+        <div class="layout-container">
+            
+            <!-- Menu Sidebar -->
+            <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+                <div class="app-brand demo">
+                    <a asp-controller="Dashboard" asp-action="Index" class="app-brand-link">
+                        <span class="app-brand-logo demo">
+                            <span class="badge bg-primary p-2 rounded-circle me-1">
+                                <i class="bx bx-headphone text-white fs-4"></i>
+                            </span>
+                        </span>
+                        <span class="app-brand-text demo menu-text fw-bolder ms-2 text-capitalize">OpsDesk</span>
+                    </a>
 
-@if (User.Identity?.IsAuthenticated == true)
-{
-    <!-- ================================================================
-         NAVBAR — chỉ hiện với user đã đăng nhập
-         Navigation links được ẩn/hiện theo permission (chỉ UX, không phải security)
-         Security thực sự được thực thi ở controller/action level
-    ================================================================ -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm" role="navigation" aria-label="Main navigation">
-        <div class="container-fluid px-4">
-            <!-- Brand -->
-            <a class="navbar-brand fw-bold" asp-controller="Dashboard" asp-action="Index" aria-label="OpsDesk Home">
-                <i class="bi bi-headset me-2" aria-hidden="true"></i>OpsDesk
-            </a>
+                    <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
+                        <i class="bx bx-chevron-left bx-sm align-middle"></i>
+                    </a>
+                </div>
 
-            <button class="navbar-toggler" type="button"
-                    data-bs-toggle="collapse" data-bs-target="#navbarMain"
-                    aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation menu">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+                <div class="menu-inner-shadow"></div>
 
-            <div class="collapse navbar-collapse" id="navbarMain">
-                <ul class="navbar-nav me-auto">
-
-                    <!-- Dashboard: mọi nhân viên đều thấy -->
-                    <li class="nav-item">
-                        <a class="nav-link" asp-controller="Dashboard" asp-action="Index">
-                            <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                <ul class="menu-inner py-1">
+                    
+                    <!-- Dashboard -->
+                    <li class="menu-item @(currentController == "Dashboard" ? "active" : "")">
+                        <a asp-controller="Dashboard" asp-action="Index" class="menu-link">
+                            <i class="menu-icon tf-icons bx bx-home-circle"></i>
+                            <div data-i18n="Analytics">Dashboard</div>
                         </a>
                     </li>
 
+                    <!-- Header: OPERATIONS -->
+                    <li class="menu-header small text-uppercase">
+                        <span class="menu-header-text">Operations</span>
+                    </li>
+
                     <!-- Tickets -->
-                    @if (User.HasClaim("Permission", "Ticket.ViewAll") ||
-                         User.HasClaim("Permission", "Ticket.ViewAssigned"))
+                    @if (User.HasClaim("Permission", "Ticket.ViewAll") || User.HasClaim("Permission", "Ticket.ViewAssigned"))
                     {
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Ticket" asp-action="Index">
-                                <i class="bi bi-ticket-detailed me-1"></i>Tickets
+                        <li class="menu-item @(currentController == "Ticket" ? "active open" : "")">
+                            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                                <i class="menu-icon tf-icons bx bx-support"></i>
+                                <div>Support Tickets</div>
                             </a>
+                            <ul class="menu-sub">
+                                <li class="menu-item @(currentController == "Ticket" && currentAction == "Index" ? "active" : "")">
+                                    <a asp-controller="Ticket" asp-action="Index" class="menu-link">
+                                        <div>Ticket List</div>
+                                    </a>
+                                </li>
+                                @if (User.HasClaim("Permission", "Ticket.Create"))
+                                {
+                                    <li class="menu-item @(currentController == "Ticket" && currentAction == "Create" ? "active" : "")">
+                                        <a asp-controller="Ticket" asp-action="Create" class="menu-link">
+                                            <div>Create Ticket</div>
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
                         </li>
                     }
 
                     <!-- Customers -->
                     @if (User.HasClaim("Permission", "Customer.View"))
                     {
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Customer" asp-action="Index">
-                                <i class="bi bi-people me-1"></i>Khách hàng
+                        <li class="menu-item @(currentController == "Customer" ? "active" : "")">
+                            <a asp-controller="Customer" asp-action="Index" class="menu-link">
+                                <i class="menu-icon tf-icons bx bx-buildings"></i>
+                                <div>Customers</div>
                             </a>
                         </li>
                     }
 
-                    <!-- Employees — chỉ Admin/Manager -->
-                    @if (User.HasClaim("Permission", "Employee.View"))
+                    <!-- Header: ORGANIZATION -->
+                    @if (User.HasClaim("Permission", "Employee.View") || User.HasClaim("Permission", "Role.View"))
                     {
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Employee" asp-action="Index">
-                                <i class="bi bi-person-badge me-1"></i>Nhân viên
-                            </a>
+                        <li class="menu-header small text-uppercase">
+                            <span class="menu-header-text">Organization</span>
                         </li>
-                    }
 
-                    <!-- Roles — chỉ Admin -->
-                    @if (User.HasClaim("Permission", "Role.View"))
-                    {
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Role" asp-action="Index">
-                                <i class="bi bi-shield-lock me-1"></i>Phân quyền
-                            </a>
-                        </li>
-                    }
-
-                    <!-- Audit Log — chỉ Admin -->
-                    @if (User.HasClaim("Permission", "Audit.View"))
-                    {
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="AuditLog" asp-action="Index">
-                                <i class="bi bi-journal-text me-1"></i>Audit Log
-                            </a>
-                        </li>
-                    }
-
-                </ul>
-
-                <!-- User menu -->
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#"
-                           data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle me-1"></i>
-                            @User.Identity.Name
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li>
-                                <a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">
-                                    <i class="bi bi-key me-2"></i>Đổi mật khẩu
+                        <!-- Employees -->
+                        @if (User.HasClaim("Permission", "Employee.View"))
+                        {
+                            <li class="menu-item @(currentController == "Employee" ? "active" : "")">
+                                <a asp-controller="Employee" asp-action="Index" class="menu-link">
+                                    <i class="menu-icon tf-icons bx bx-user-check"></i>
+                                    <div>Employees</div>
                                 </a>
                             </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form asp-controller="Account" asp-action="Logout" method="post">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="dropdown-item text-danger">
-                                        <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
-                                    </button>
-                                </form>
+                        }
+
+                        <!-- Roles & Permissions -->
+                        @if (User.HasClaim("Permission", "Role.View"))
+                        {
+                            <li class="menu-item @(currentController == "Role" ? "active" : "")">
+                                <a asp-controller="Role" asp-action="Index" class="menu-link">
+                                    <i class="menu-icon tf-icons bx bx-shield-quarter"></i>
+                                    <div>Roles & Permissions</div>
+                                </a>
                             </li>
-                        </ul>
-                    </li>
+                        }
+                    }
+
+                    <!-- Header: SYSTEM -->
+                    @if (User.HasClaim("Permission", "Audit.View"))
+                    {
+                        <li class="menu-header small text-uppercase">
+                            <span class="menu-header-text">System</span>
+                        </li>
+
+                        <!-- Audit Logs -->
+                        <li class="menu-item @(currentController == "AuditLog" ? "active" : "")">
+                            <a asp-controller="AuditLog" asp-action="Index" class="menu-link">
+                                <i class="menu-icon tf-icons bx bx-history"></i>
+                                <div>Audit Logs</div>
+                            </a>
+                        </li>
+                    }
+
                 </ul>
+            </aside>
+            <!-- / Menu -->
+
+            <!-- Layout container -->
+            <div class="layout-page">
+                
+                <!-- Navbar -->
+                <nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme" id="layout-navbar">
+                    <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
+                        <a class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
+                            <i class="bx bx-menu bx-sm"></i>
+                        </a>
+                    </div>
+
+                    <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
+                        <!-- Breadcrumb/Title -->
+                        <div class="navbar-nav align-items-center">
+                            <div class="nav-item d-flex align-items-center">
+                                <span class="fw-semibold text-muted">OpsDesk Portal</span>
+                                <span class="text-muted mx-2">/</span>
+                                <span class="fw-bold text-dark">@(ViewData["Title"] ?? currentController)</span>
+                            </div>
+                        </div>
+
+                        <ul class="navbar-nav flex-row align-items-center ms-auto">
+                            <!-- User Role Badge -->
+                            <li class="nav-item me-3 d-none d-sm-block">
+                                <span class="badge bg-label-primary text-uppercase">@primaryRole</span>
+                            </li>
+
+                            <!-- User Dropdown -->
+                            <li class="nav-item navbar-dropdown dropdown-user dropdown">
+                                <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                    <div class="avatar avatar-online">
+                                        <span class="avatar-initial rounded-circle bg-primary text-white">
+                                            @(userEmail.Length > 0 ? userEmail[0].ToString().ToUpper() : "U")
+                                        </span>
+                                    </div>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <div class="d-flex">
+                                                <div class="flex-shrink-0 me-3">
+                                                    <div class="avatar avatar-online">
+                                                        <span class="avatar-initial rounded-circle bg-primary text-white">
+                                                            @(userEmail.Length > 0 ? userEmail[0].ToString().ToUpper() : "U")
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <span class="fw-semibold d-block">@userEmail</span>
+                                                    <small class="text-muted">@string.Join(", ", userRoles)</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                    <li><div class="dropdown-divider"></div></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">
+                                            <i class="bx bx-lock-open-alt me-2"></i>
+                                            <span class="align-middle">Change Password</span>
+                                        </a>
+                                    </li>
+                                    <li><div class="dropdown-divider"></div></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="dropdown-item text-danger border-0 bg-transparent w-100 text-start">
+                                                <i class="bx bx-power-off me-2"></i>
+                                                <span class="align-middle">Log Out</span>
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                            <!--/ User -->
+                        </ul>
+                    </div>
+                </nav>
+                <!-- / Navbar -->
+
+                <!-- Content wrapper -->
+                <div class="content-wrapper">
+                    
+                    <!-- Content -->
+                    <div class="container-xxl flex-grow-1 container-p-y">
+                        
+                        <!-- Notifications/Alerts -->
+                        @if (TempData["SuccessMessage"] != null)
+                        {
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <div class="d-flex align-items-center">
+                                    <i class="bx bx-check-circle me-2 fs-5"></i>
+                                    <div>@TempData["SuccessMessage"]</div>
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
+                        @if (TempData["ErrorMessage"] != null)
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <div class="d-flex align-items-center">
+                                    <i class="bx bx-error-circle me-2 fs-5"></i>
+                                    <div>@TempData["ErrorMessage"]</div>
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
+
+                        @RenderBody()
+                    </div>
+                    <!-- / Content -->
+
+                    <!-- Footer -->
+                    <footer class="content-footer footer bg-footer-theme">
+                        <div class="container-xxl d-flex flex-wrap justify-content-between py-2 flex-md-row flex-column">
+                            <div class="mb-2 mb-md-0 text-muted">
+                                © <script>document.write(new Date().getFullYear())</script> OpsDesk Operations Platform. All rights reserved.
+                            </div>
+                            <div class="text-muted">
+                                Version 1.0.0
+                            </div>
+                        </div>
+                    </footer>
+                    <!-- / Footer -->
+
+                    <div class="content-backdrop fade"></div>
+                </div>
+                <!-- Content wrapper -->
+            </div>
+            <!-- / Layout page -->
+        </div>
+
+        <!-- Overlay -->
+        <div class="layout-overlay layout-menu-toggle"></div>
+    </div>
+    <!-- / Layout wrapper -->
+
+    <!-- Global Confirmation Modal -->
+    <div class="modal fade" id="globalConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content shadow">
+                <div class="modal-header pb-2 border-bottom-0">
+                    <h5 class="modal-title fw-bold" id="globalConfirmTitle">Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-2 text-muted" id="globalConfirmMessage">
+                    Are you sure you want to proceed?
+                </div>
+                <div class="modal-footer pt-2 border-top-0 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="globalConfirmBtn">Confirm</button>
+                </div>
             </div>
         </div>
-    </nav>
-}
+    </div>
 
-<!-- ================================================================
-     MAIN CONTENT
-================================================================ -->
-<main class="@(User.Identity?.IsAuthenticated == true ? "container-fluid px-4 py-4" : "")">
+    <!-- Core Scripts -->
+    <script src="~/lib/sneat/vendor/libs/jquery/jquery.js"></script>
+    <script src="~/lib/sneat/vendor/libs/popper/popper.js"></script>
+    <script src="~/lib/sneat/vendor/js/bootstrap.js"></script>
+    <script src="~/lib/sneat/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+    <script src="~/lib/sneat/vendor/js/menu.js"></script>
+    <script src="~/lib/sneat/js/main.js"></script>
 
-    <!-- Alert messages từ TempData -->
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle me-2"></i>@TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
+    <script>
+        // Global Confirmation Modal Handler
+        window.openConfirmModal = function({ title = 'Confirmation', message = 'Are you sure?', btnText = 'Confirm', btnClass = 'btn-danger', onConfirm }) {
+            document.getElementById('globalConfirmTitle').textContent = title;
+            document.getElementById('globalConfirmMessage').textContent = message;
+            var btn = document.getElementById('globalConfirmBtn');
+            btn.textContent = btnText;
+            btn.className = 'btn btn-sm ' + btnClass;
+            
+            var modalEl = document.getElementById('globalConfirmModal');
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            
+            btn.onclick = function() {
+                modal.hide();
+                if (typeof onConfirm === 'function') onConfirm();
+            };
+            modal.show();
+        };
 
-    @RenderBody()
-</main>
+        // Automatically intercept any form or button with data-confirm
+        document.addEventListener('submit', function(e) {
+            var form = e.target;
+            var confirmMsg = form.getAttribute('data-confirm');
+            if (confirmMsg && !form.dataset.confirmed) {
+                e.preventDefault();
+                var confirmTitle = form.getAttribute('data-confirm-title') || 'Confirm Action';
+                var btnText = form.getAttribute('data-confirm-btn') || 'Confirm';
+                var btnClass = form.getAttribute('data-confirm-class') || 'btn-danger';
+                window.openConfirmModal({
+                    title: confirmTitle,
+                    message: confirmMsg,
+                    btnText: btnText,
+                    btnClass: btnClass,
+                    onConfirm: function() {
+                        form.dataset.confirmed = "true";
+                        form.submit();
+                    }
+                });
+            }
+        });
+    </script>
 
-<script src="~/lib/jquery/dist/jquery.min.js"></script>
-<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-<script src="~/js/site.js" asp-append-version="true"></script>
-
-@await RenderSectionAsync("Scripts", required: false)
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

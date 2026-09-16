@@ -76,7 +76,7 @@ public class CustomerController : Controller
             return View(model);
         }
 
-        TempData["SuccessMessage"] = $"Đã thêm khách hàng '{model.Name}' thành công.";
+        TempData["SuccessMessage"] = $"Customer '{model.Name}' created successfully.";
         return RedirectToAction(nameof(Detail), new { id = result.Data });
     }
 
@@ -124,7 +124,7 @@ public class CustomerController : Controller
             return View(model);
         }
 
-        TempData["SuccessMessage"] = $"Đã cập nhật thông tin khách hàng '{model.Name}'.";
+        TempData["SuccessMessage"] = $"Customer '{model.Name}' updated successfully.";
         return RedirectToAction(nameof(Detail), new { id });
     }
 }

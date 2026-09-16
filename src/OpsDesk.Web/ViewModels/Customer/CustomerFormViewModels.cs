@@ -4,24 +4,24 @@ namespace OpsDesk.Web.ViewModels.Customer;
 
 public class CreateCustomerViewModel
 {
-    [Required(ErrorMessage = "Tên khách hàng là bắt buộc")]
-    [MaxLength(150, ErrorMessage = "Tên không được vượt quá 150 ký tự")]
-    [Display(Name = "Tên khách hàng / Đại diện")]
+    [Required(ErrorMessage = "Customer name is required.")]
+    [MaxLength(150, ErrorMessage = "Name cannot exceed 150 characters.")]
+    [Display(Name = "Customer Name / Representative")]
     public string Name { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Email là bắt buộc")]
-    [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+    [Required(ErrorMessage = "Email is required.")]
+    [EmailAddress(ErrorMessage = "Invalid email address.")]
     [MaxLength(256)]
-    [Display(Name = "Địa chỉ Email")]
+    [Display(Name = "Email Address")]
     public string Email { get; set; } = string.Empty;
 
-    [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
+    [Phone(ErrorMessage = "Invalid phone number.")]
     [MaxLength(20)]
-    [Display(Name = "Số điện thoại")]
+    [Display(Name = "Phone Number")]
     public string? Phone { get; set; }
 
     [MaxLength(150)]
-    [Display(Name = "Công ty / Tổ chức")]
+    [Display(Name = "Company / Organization")]
     public string? Company { get; set; }
 }
 
@@ -29,23 +29,23 @@ public class EditCustomerViewModel
 {
     public int Id { get; set; }
 
-    [Required(ErrorMessage = "Tên khách hàng là bắt buộc")]
-    [MaxLength(150, ErrorMessage = "Tên không được vượt quá 150 ký tự")]
-    [Display(Name = "Tên khách hàng / Đại diện")]
+    [Required(ErrorMessage = "Customer name is required.")]
+    [MaxLength(150, ErrorMessage = "Name cannot exceed 150 characters.")]
+    [Display(Name = "Customer Name / Representative")]
     public string Name { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Email là bắt buộc")]
-    [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+    [Required(ErrorMessage = "Email is required.")]
+    [EmailAddress(ErrorMessage = "Invalid email address.")]
     [MaxLength(256)]
-    [Display(Name = "Địa chỉ Email")]
+    [Display(Name = "Email Address")]
     public string Email { get; set; } = string.Empty;
 
-    [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
+    [Phone(ErrorMessage = "Invalid phone number.")]
     [MaxLength(20)]
-    [Display(Name = "Số điện thoại")]
+    [Display(Name = "Phone Number")]
     public string? Phone { get; set; }
 
     [MaxLength(150)]
-    [Display(Name = "Công ty / Tổ chức")]
+    [Display(Name = "Company / Organization")]
     public string? Company { get; set; }
 }

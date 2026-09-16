@@ -47,7 +47,7 @@ public class RoleController : Controller
             return View(model);
         }
 
-        TempData["SuccessMessage"] = $"Đã tạo vai trò '{model.Name}' thành công.";
+        TempData["SuccessMessage"] = $"Role '{model.Name}' created successfully.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -81,7 +81,7 @@ public class RoleController : Controller
             return View(vm);
         }
 
-        TempData["SuccessMessage"] = $"Đã cập nhật quyền cho vai trò '{model.RoleName}' thành công.";
+        TempData["SuccessMessage"] = $"Permissions for role '{model.RoleName}' updated successfully.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -95,10 +95,10 @@ public class RoleController : Controller
         if (role is null)
             return NotFound();
 
-        // Không cho xóa 3 vai trò mặc định
-        if (role.Name is "Admin" or "Manager" or "SupportAgent")
+        // Prevent deleting default critical roles
+        if (role.Name is "Admin" or "ADMIN" or "Manager" or "MANAGER" or "SupportAgent" or "SUPPORT_AGENT" or "SUPER_ADMIN" or "SuperAdmin")
         {
-            TempData["ErrorMessage"] = $"Không thể xóa vai trò mặc định '{role.Name}'.";
+            TempData["ErrorMessage"] = $"Cannot delete built-in system role '{role.Name}'.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -109,7 +109,7 @@ public class RoleController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        TempData["SuccessMessage"] = $"Đã xóa vai trò '{role.Name}'.";
+        TempData["SuccessMessage"] = $"Role '{role.Name}' deleted successfully.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -118,19 +118,18 @@ public class RoleController : Controller
         var allPermissions = Permissions.GetAll().ToList();
         var selectedSet = new HashSet<string>(role.Permissions);
 
-        // Gom nhóm permissions theo tiền tố domain
         var groups = allPermissions
             .GroupBy(p => p.Split('.')[0])
             .Select(g => new PermissionGroup
             {
                 Domain = g.Key switch
                 {
-                    "Dashboard" => "Bảng điều khiển (Dashboard)",
-                    "Employee" => "Nhân viên (Employee)",
-                    "Role" => "Vai trò & Quyền (Role)",
-                    "Customer" => "Khách hàng (Customer)",
-                    "Ticket" => "Phiếu hỗ trợ (Ticket)",
-                    "Audit" => "Nhật ký hệ thống (Audit)",
+                    "Dashboard" => "Dashboard",
+                    "Employee" => "Employees",
+                    "Role" => "Roles & Permissions",
+                    "Customer" => "Customers",
+                    "Ticket" => "Tickets",
+                    "Audit" => "Audit Logs",
                     _ => g.Key
                 },
                 Items = g.Select(p => new PermissionItem
@@ -153,25 +152,25 @@ public class RoleController : Controller
 
     private static string GetPermissionLabel(string permission) => permission switch
     {
-        Permissions.Dashboard.View => "Xem Dashboard và thống kê",
-        Permissions.Employee.View => "Xem danh sách và chi tiết nhân viên",
-        Permissions.Employee.Create => "Tạo mới tài khoản nhân viên",
-        Permissions.Employee.Update => "Chỉnh sửa thông tin nhân viên",
-        Permissions.Employee.Deactivate => "Kích hoạt / Vô hiệu hóa nhân viên",
-        Permissions.Role.View => "Xem danh sách vai trò và quyền",
-        Permissions.Role.Manage => "Tạo mới, chỉnh sửa quyền và xóa vai trò",
-        Permissions.Customer.View => "Xem danh sách và chi tiết khách hàng",
-        Permissions.Customer.Create => "Thêm khách hàng mới",
-        Permissions.Customer.Update => "Chỉnh sửa thông tin khách hàng",
-        Permissions.Ticket.ViewAll => "Xem toàn bộ tickets trong hệ thống",
-        Permissions.Ticket.ViewAssigned => "Xem tickets được giao cho bản thân",
-        Permissions.Ticket.Create => "Tạo mới ticket",
-        Permissions.Ticket.Assign => "Phân công / Chuyển giao ticket cho agent",
-        Permissions.Ticket.Update => "Cập nhật thông tin & nhận xử lý ticket",
-        Permissions.Ticket.Resolve => "Đánh dấu ticket đã giải quyết (Resolved)",
-        Permissions.Ticket.Close => "Đóng ticket (Closed)",
-        Permissions.Ticket.Reopen => "Mở lại ticket đã đóng (Reopened)",
-        Permissions.Audit.View => "Xem nhật ký kiểm tra hệ thống (Audit Log)",
+        Permissions.Dashboard.View => "View dashboard & metrics",
+        Permissions.Employee.View => "View employee list and details",
+        Permissions.Employee.Create => "Create new employee account",
+        Permissions.Employee.Update => "Edit employee details",
+        Permissions.Employee.Deactivate => "Activate / Deactivate employees",
+        Permissions.Role.View => "View roles and permissions",
+        Permissions.Role.Manage => "Create, edit permissions, and delete roles",
+        Permissions.Customer.View => "View customer list and details",
+        Permissions.Customer.Create => "Create new customer",
+        Permissions.Customer.Update => "Edit customer details",
+        Permissions.Ticket.ViewAll => "View all tickets across system",
+        Permissions.Ticket.ViewAssigned => "View tickets assigned to self",
+        Permissions.Ticket.Create => "Create new ticket",
+        Permissions.Ticket.Assign => "Assign / Reassign ticket to agent",
+        Permissions.Ticket.Update => "Update ticket details and take ownership",
+        Permissions.Ticket.Resolve => "Mark ticket as Resolved",
+        Permissions.Ticket.Close => "Close ticket",
+        Permissions.Ticket.Reopen => "Reopen closed ticket",
+        Permissions.Audit.View => "View system audit logs",
         _ => permission
     };
 }

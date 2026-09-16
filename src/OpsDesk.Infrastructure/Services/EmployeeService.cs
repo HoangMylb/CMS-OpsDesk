@@ -36,48 +36,54 @@ public class EmployeeService : IEmployeeService
     public async Task<(List<EmployeeListItem> Items, int TotalCount)> GetPagedAsync(
         string? search, bool? isActive, int page, int pageSize)
     {
-        // Xây dựng query bằng LINQ — filter tại database, không load toàn bộ bảng vào memory
-        // Dùng LEFT JOIN để lấy Department và Role trong một query duy nhất
-        var query =
-            from user in _db.Users.AsNoTracking()
-            join dept in _db.Departments.AsNoTracking()
-                on user.DepartmentId equals dept.Id into depts
-            from dept in depts.DefaultIfEmpty()
-            join userRole in _db.UserRoles.AsNoTracking()
-                on user.Id equals userRole.UserId into userRoles
-            from userRole in userRoles.DefaultIfEmpty()
-            join role in _db.Roles.AsNoTracking()
-                on userRole.RoleId equals role.Id into roles
-            from role in roles.DefaultIfEmpty()
-            select new { user, dept, role };
+        var query = _db.Users.AsNoTracking()
+            .Include(u => u.Department)
+            .AsQueryable();
 
-        // Áp dụng filter
+        // Apply filters
         if (!string.IsNullOrWhiteSpace(search))
         {
             search = search.Trim().ToLower();
-            query = query.Where(x =>
-                x.user.FullName.ToLower().Contains(search) ||
-                (x.user.Email != null && x.user.Email.ToLower().Contains(search)));
+            query = query.Where(u =>
+                u.FullName.ToLower().Contains(search) ||
+                (u.Email != null && u.Email.ToLower().Contains(search)));
         }
 
         if (isActive.HasValue)
-            query = query.Where(x => x.user.IsActive == isActive.Value);
+            query = query.Where(u => u.IsActive == isActive.Value);
 
         var totalCount = await query.CountAsync();
 
-        var items = await query
-            .OrderBy(x => x.user.FullName)
+        var users = await query
+            .OrderBy(u => u.FullName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(x => new EmployeeListItem(
-                x.user.Id,
-                x.user.FullName,
-                x.user.Email,
-                x.dept != null ? x.dept.Name : null,
-                x.user.IsActive,
-                x.role != null ? x.role.Name : null,
-                x.user.CreatedAt))
             .ToListAsync();
+
+        var userIds = users.Select(u => u.Id).ToList();
+
+        var userRolesMap = await (
+            from ur in _db.UserRoles.AsNoTracking()
+            join r in _db.Roles.AsNoTracking() on ur.RoleId equals r.Id
+            where userIds.Contains(ur.UserId)
+            select new { ur.UserId, RoleName = r.Name }
+        ).ToListAsync();
+
+        var rolesByUser = userRolesMap
+            .GroupBy(x => x.UserId)
+            .ToDictionary(
+                g => g.Key,
+                g => string.Join(", ", g.Select(x => x.RoleName).Where(r => !string.IsNullOrEmpty(r)))
+            );
+
+        var items = users.Select(u => new EmployeeListItem(
+            u.Id,
+            u.FullName,
+            u.Email,
+            u.Department?.Name,
+            u.IsActive,
+            rolesByUser.TryGetValue(u.Id, out var rName) ? rName : null,
+            u.CreatedAt)).ToList();
 
         return (items, totalCount);
     }
@@ -106,8 +112,9 @@ public class EmployeeService : IEmployeeService
 
     public async Task<string?> GetCurrentRoleAsync(string userId)
     {
-        var roles = await _userManager.GetRolesAsync(
-            (await _userManager.FindByIdAsync(userId))!);
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null) return null;
+        var roles = await _userManager.GetRolesAsync(user);
         return roles.FirstOrDefault();
     }
 
@@ -117,9 +124,8 @@ public class EmployeeService : IEmployeeService
 
     public async Task<ServiceResult> CreateAsync(CreateEmployeeRequest request)
     {
-        // Kiểm tra email trùng
         if (await _userManager.FindByEmailAsync(request.Email) is not null)
-            return ServiceResult.Failure("Email đã được sử dụng bởi tài khoản khác.");
+            return ServiceResult.Failure("Email is already registered by another account.");
 
         var user = new ApplicationUser
         {
@@ -140,13 +146,13 @@ public class EmployeeService : IEmployeeService
             await _userManager.AddToRoleAsync(user, request.RoleName);
 
         await _auditService.LogAsync(
-            userId: null, // sẽ được set từ controller
+            userId: null,
             action: "EmployeeCreated",
             entityName: "ApplicationUser",
             entityId: user.Id,
             newValues: new { user.Email, user.FullName, Role = request.RoleName });
 
-        _logger.LogInformation("Tạo nhân viên mới: {Email}", user.Email);
+        _logger.LogInformation("Created new employee: {Email}", user.Email);
         return ServiceResult.Success();
     }
 
@@ -158,12 +164,11 @@ public class EmployeeService : IEmployeeService
     {
         var user = await _userManager.FindByIdAsync(id);
         if (user is null)
-            return ServiceResult.Failure("Không tìm thấy nhân viên.");
+            return ServiceResult.Failure("Employee not found.");
 
-        // Kiểm tra email trùng với nhân viên KHÁC
         var existingWithEmail = await _userManager.FindByEmailAsync(request.Email);
         if (existingWithEmail is not null && existingWithEmail.Id != id)
-            return ServiceResult.Failure("Email đã được sử dụng bởi tài khoản khác.");
+            return ServiceResult.Failure("Email is already registered by another account.");
 
         var oldValues = new { user.FullName, user.Email, user.DepartmentId };
 
@@ -176,7 +181,6 @@ public class EmployeeService : IEmployeeService
         if (!result.Succeeded)
             return ServiceResult.Failure(result.Errors.Select(e => e.Description));
 
-        // Cập nhật role nếu thay đổi
         if (!string.IsNullOrEmpty(request.RoleName))
         {
             var currentRoles = await _userManager.GetRolesAsync(user);
@@ -206,13 +210,13 @@ public class EmployeeService : IEmployeeService
     {
         var user = await _userManager.FindByIdAsync(id);
         if (user is null)
-            return ServiceResult.Failure("Không tìm thấy nhân viên.");
+            return ServiceResult.Failure("Employee not found.");
 
         if (user.Id == changedByUserId)
-            return ServiceResult.Failure("Bạn không thể tự vô hiệu hóa tài khoản của mình.");
+            return ServiceResult.Failure("You cannot deactivate your own account.");
 
         if (!user.IsActive)
-            return ServiceResult.Failure("Tài khoản đã ở trạng thái vô hiệu hóa.");
+            return ServiceResult.Failure("Account is already deactivated.");
 
         user.IsActive = false;
         await _userManager.UpdateAsync(user);
@@ -231,10 +235,10 @@ public class EmployeeService : IEmployeeService
     {
         var user = await _userManager.FindByIdAsync(id);
         if (user is null)
-            return ServiceResult.Failure("Không tìm thấy nhân viên.");
+            return ServiceResult.Failure("Employee not found.");
 
         if (user.IsActive)
-            return ServiceResult.Failure("Tài khoản đã đang hoạt động.");
+            return ServiceResult.Failure("Account is already active.");
 
         user.IsActive = true;
         await _userManager.UpdateAsync(user);

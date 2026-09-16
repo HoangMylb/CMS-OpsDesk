@@ -54,7 +54,7 @@ public class DashboardService : IDashboardService
                 resolvedTodayCount
             );
 
-            // 2. Thống kê theo Mức độ ưu tiên
+            // 2. Statistics by Priority
             var prioCounts = await query
                 .Where(t => t.Status != TicketStatus.Closed)
                 .GroupBy(t => t.Priority)
@@ -69,7 +69,7 @@ public class DashboardService : IDashboardService
                 ))
                 .ToList();
 
-            // 3. Thống kê theo Trạng thái
+            // 3. Statistics by Status
             var statusCounts = await query
                 .GroupBy(t => t.Status)
                 .Select(g => new { Status = g.Key, Count = g.Count() })
@@ -83,7 +83,7 @@ public class DashboardService : IDashboardService
                 ))
                 .ToList();
 
-            // 4. Phân bổ công việc giữa các Agent (chỉ tính cho Admin/Manager xem toàn hệ thống)
+            // 4. Agent workload distribution (calculated for Admin/Manager system-wide view)
             var agentWorkloads = new List<AgentWorkloadItem>();
             if (isSystemWide)
             {
@@ -121,7 +121,7 @@ public class DashboardService : IDashboardService
                 .ToList();
             }
 
-            // 5. Danh sách Top 5 Ticket quá hạn cần ưu tiên giải quyết
+            // 5. Top 5 Overdue tickets requiring immediate action
             var topOverdue = await query
                 .Where(t => t.DueAt < now && t.Status != TicketStatus.Resolved && t.Status != TicketStatus.Closed)
                 .OrderBy(t => t.DueAt)
@@ -150,26 +150,26 @@ public class DashboardService : IDashboardService
                 topOverdue,
                 isSystemWide
             );
-        }, TimeSpan.FromMinutes(2)); // Cache trong 2 phút
+        }, TimeSpan.FromMinutes(2));
     }
 
     private static string GetPriorityDisplayName(TicketPriority p) => p switch
     {
-        TicketPriority.Critical => "Khẩn cấp (4h)",
-        TicketPriority.High => "Cao (24h)",
-        TicketPriority.Medium => "Trung bình (48h)",
-        TicketPriority.Low => "Thấp (72h)",
+        TicketPriority.Critical => "Critical (4h)",
+        TicketPriority.High => "High (24h)",
+        TicketPriority.Medium => "Medium (48h)",
+        TicketPriority.Low => "Low (72h)",
         _ => p.ToString()
     };
 
     private static string GetStatusDisplayName(TicketStatus s) => s switch
     {
-        TicketStatus.New => "Mới",
-        TicketStatus.Assigned => "Đã phân công",
-        TicketStatus.InProgress => "Đang xử lý",
-        TicketStatus.Resolved => "Đã giải quyết",
-        TicketStatus.Closed => "Đã đóng",
-        TicketStatus.Reopened => "Mở lại",
+        TicketStatus.New => "New",
+        TicketStatus.Assigned => "Assigned",
+        TicketStatus.InProgress => "In Progress",
+        TicketStatus.Resolved => "Resolved",
+        TicketStatus.Closed => "Closed",
+        TicketStatus.Reopened => "Reopened",
         _ => s.ToString()
     };
 }

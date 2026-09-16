@@ -24,6 +24,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
             // This lets us run migrations from the Infrastructure project
             // without the Web project needing to know the DB details.
             sqlOptions.MigrationsAssembly("OpsDesk.Infrastructure");
+            sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
         }
     ));
 
@@ -72,7 +73,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.SameSite = SameSiteMode.Strict; // CSRF protection
 });
 
-// Cấu hình JWT Bearer song song cho các API client / Mobile apps
+// Configure JWT Bearer alongside Cookie authentication for API clients / mobile apps
 builder.Services.AddAuthentication()
     .AddJwtBearer(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme, options =>
     {
@@ -142,9 +143,8 @@ builder.Services.AddControllersWithViews(options =>
     );
     options.Filters.Add(policy);
 
-    // Global filter kiểm tra IsActive mỗi request.
-    // Đây là cơ chế đảm bảo nhân viên bị vô hiệu hóa không thể tiếp tục dùng hệ thống
-    // dù cookie của họ vẫn còn hiệu lực.
+    // Global filter to check IsActive on every request.
+    // Ensures deactivated employees cannot continue using the system even if session cookies are active.
     options.Filters.Add<ActiveUserFilter>();
 });
 
@@ -194,22 +194,28 @@ app.MapControllerRoute(
     pattern: "{controller=Dashboard}/{action=Index}/{id?}");
 
 // ============================================================
-// DATABASE INITIALISATION (Development only)
+// DATABASE INITIALISATION (Development & Automated Cloud Staging)
 // ============================================================
-// Seeding will be added in Phase 19.
-// For now we just ensure the database is created/migrated on startup.
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-    if (app.Environment.IsDevelopment())
+    var shouldMigrate = app.Environment.IsDevelopment() ||
+                        app.Configuration.GetValue<bool>("AutoMigrate", true);
+
+    if (shouldMigrate)
     {
         await db.Database.MigrateAsync();
 
-        // Seed dữ liệu demo — chỉ trong development
-        var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
-        await seeder.SeedAsync();
+        var shouldSeed = app.Environment.IsDevelopment() ||
+                         app.Configuration.GetValue<bool>("AutoSeed", true);
+
+        if (shouldSeed)
+        {
+            var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+            await seeder.SeedAsync();
+        }
     }
 }
 

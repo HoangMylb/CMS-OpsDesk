@@ -1,68 +1,77 @@
 @model OpsDesk.Web.ViewModels.Customer.CustomerDetailViewModel
 @using OpsDesk.Core.Enums
 @{
-    ViewData["Title"] = $"Khách hàng: {Model.Customer.Name}";
+    ViewData["Title"] = $"Customer: {Model.Customer.Name}";
     var c = Model.Customer;
 }
 
 <div class="mb-4">
-    <a asp-action="Index" class="btn btn-link text-decoration-none p-0 mb-2">
-        <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách khách hàng
+    <a asp-action="Index" class="btn btn-sm btn-outline-secondary mb-3">
+        <i class="bx bx-arrow-back me-1"></i>Back to Customer Directory
     </a>
-    <div class="d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div>
-            <h1 class="h4 fw-bold mb-1">@c.Name</h1>
-            <p class="text-muted small mb-0">Tạo ngày: @c.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+            <h4 class="fw-bold mb-1">@c.Name</h4>
+            <small class="text-muted">Account Registered: @c.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</small>
         </div>
         <div class="d-flex gap-2">
-            <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-pencil me-1"></i>Chỉnh sửa
+            <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-outline-primary btn-sm d-flex align-items-center">
+                <i class="bx bx-edit me-1"></i>Edit Profile
             </a>
-            <a asp-controller="Ticket" asp-action="Create" asp-route-customerId="@c.Id" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus-lg me-1"></i>Tạo ticket mới
+            <a asp-controller="Ticket" asp-action="Create" asp-route-customerId="@c.Id" class="btn btn-primary btn-sm d-flex align-items-center">
+                <i class="bx bx-plus me-1"></i>Create Ticket
             </a>
         </div>
     </div>
 </div>
 
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle me-1"></i>@TempData["SuccessMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-
 <div class="row g-4 mb-4">
+    <!-- Contact Info Card -->
     <div class="col-md-4">
         <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-transparent border-bottom py-3">
-                <h2 class="h6 fw-bold mb-0">Thông tin liên hệ</h2>
+            <div class="card-header pb-0">
+                <h5 class="card-title mb-0 fw-semibold d-flex align-items-center">
+                    <i class="bx bx-id-card text-primary me-2 fs-5"></i>Profile Details
+                </h5>
             </div>
-            <div class="card-body">
-                <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+            <div class="card-body pt-3">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="avatar avatar-md me-3">
+                        <span class="avatar-initial rounded-circle bg-label-primary fs-4">
+                            @(c.Name.Length > 0 ? c.Name[0].ToString().ToUpper() : "C")
+                        </span>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-semibold">@c.Name</h6>
+                        <small class="text-muted">@(string.IsNullOrEmpty(c.Company) ? "Individual Client" : c.Company)</small>
+                    </div>
+                </div>
+
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-3 small">
                     <li>
-                        <div class="text-muted small">Địa chỉ Email</div>
+                        <div class="text-muted">Email Address</div>
                         <div class="fw-semibold">
-                            <a href="mailto:@c.Email" class="text-decoration-none">@c.Email</a>
+                            <a href="mailto:@c.Email" class="text-primary d-flex align-items-center">
+                                <i class="bx bx-envelope me-1"></i>@c.Email
+                            </a>
                         </div>
                     </li>
                     <li>
-                        <div class="text-muted small">Số điện thoại</div>
+                        <div class="text-muted">Phone Number</div>
                         <div class="fw-semibold">
                             @(string.IsNullOrEmpty(c.Phone) ? "—" : c.Phone)
                         </div>
                     </li>
                     <li>
-                        <div class="text-muted small">Công ty / Tổ chức</div>
+                        <div class="text-muted">Company / Organization</div>
                         <div class="fw-semibold">
                             @(string.IsNullOrEmpty(c.Company) ? "—" : c.Company)
                         </div>
                     </li>
                     <li>
-                        <div class="text-muted small">Cập nhật lần cuối</div>
-                        <div class="fw-semibold">
-                            @c.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        <div class="text-muted">Last Updated</div>
+                        <div class="fw-semibold text-muted">
+                            @c.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
                         </div>
                     </li>
                 </ul>
@@ -70,30 +79,34 @@
         </div>
     </div>
 
+    <!-- Ticket History Card -->
     <div class="col-md-8">
         <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
-                <h2 class="h6 fw-bold mb-0">Lịch sử phiếu hỗ trợ (Tickets)</h2>
-                <span class="badge bg-secondary-subtle text-secondary">@c.Tickets.Count phiếu</span>
+            <div class="card-header d-flex align-items-center justify-content-between pb-0">
+                <h5 class="card-title mb-0 fw-semibold d-flex align-items-center">
+                    <i class="bx bx-support text-primary me-2 fs-5"></i>Support Ticket History
+                </h5>
+                <span class="badge bg-label-primary">@c.Tickets.Count Tickets</span>
             </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+            <div class="table-responsive text-nowrap">
+                <table class="table table-hover">
+                    <thead>
                         <tr>
-                            <th>Mã ticket</th>
-                            <th>Tiêu đề</th>
-                            <th>Ưu tiên</th>
-                            <th>Trạng thái</th>
-                            <th>Người phụ trách</th>
-                            <th>Hạn SLA</th>
+                            <th>Ticket Code</th>
+                            <th>Subject</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Assignee</th>
+                            <th>SLA Deadline</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="table-border-bottom-0">
                         @if (c.Tickets.Count == 0)
                         {
                             <tr>
                                 <td colspan="6" class="text-center py-4 text-muted">
-                                    Khách hàng này chưa có ticket nào.
+                                    <i class="bx bx-folder-open display-6 d-block mb-1 text-secondary"></i>
+                                    No support tickets registered for this customer.
                                 </td>
                             </tr>
                         }
@@ -101,12 +114,12 @@
                         {
                             <tr>
                                 <td>
-                                    <a asp-controller="Ticket" asp-action="Detail" asp-route-id="@t.Id" class="fw-semibold font-monospace text-decoration-none">
+                                    <a asp-controller="Ticket" asp-action="Detail" asp-route-id="@t.Id" class="fw-bold font-monospace text-primary">
                                         @t.TicketCode
                                     </a>
                                 </td>
                                 <td>
-                                    <span class="d-inline-block text-truncate" style="max-width: 250px;">
+                                    <span class="d-inline-block text-truncate" style="max-width: 220px;" title="@t.Subject">
                                         @t.Subject
                                     </span>
                                 </td>
@@ -114,16 +127,16 @@
                                     @switch (t.Priority)
                                     {
                                         case TicketPriority.Critical:
-                                            <span class="badge bg-danger">Khẩn cấp</span>
+                                            <span class="badge bg-label-danger text-uppercase">Critical</span>
                                             break;
                                         case TicketPriority.High:
-                                            <span class="badge bg-warning text-dark">Cao</span>
+                                            <span class="badge bg-label-warning text-uppercase">High</span>
                                             break;
                                         case TicketPriority.Medium:
-                                            <span class="badge bg-info text-dark">Trung bình</span>
+                                            <span class="badge bg-label-info text-uppercase">Medium</span>
                                             break;
                                         default:
-                                            <span class="badge bg-light text-secondary border">Thấp</span>
+                                            <span class="badge bg-label-secondary text-uppercase">Low</span>
                                             break;
                                     }
                                 </td>
@@ -131,34 +144,34 @@
                                     @switch (t.Status)
                                     {
                                         case TicketStatus.New:
-                                            <span class="badge bg-primary">Mới</span>
+                                            <span class="badge bg-label-primary text-uppercase">New</span>
                                             break;
                                         case TicketStatus.Assigned:
-                                            <span class="badge bg-info text-dark">Đã phân công</span>
+                                            <span class="badge bg-label-info text-uppercase">Assigned</span>
                                             break;
                                         case TicketStatus.InProgress:
-                                            <span class="badge bg-warning text-dark">Đang xử lý</span>
+                                            <span class="badge bg-label-warning text-uppercase">In Progress</span>
                                             break;
                                         case TicketStatus.Resolved:
-                                            <span class="badge bg-success">Đã giải quyết</span>
+                                            <span class="badge bg-label-success text-uppercase">Resolved</span>
                                             break;
                                         case TicketStatus.Closed:
-                                            <span class="badge bg-secondary">Đã đóng</span>
+                                            <span class="badge bg-label-secondary text-uppercase">Closed</span>
                                             break;
                                         case TicketStatus.Reopened:
-                                            <span class="badge bg-danger">Mở lại</span>
+                                            <span class="badge bg-label-danger text-uppercase">Reopened</span>
                                             break;
                                     }
                                 </td>
                                 <td>
-                                    @(t.AssignedToName ?? "Chưa phân công")
+                                    @(t.AssignedToName ?? "Unassigned")
                                 </td>
                                 <td>
-                                    <div class="small @(t.IsOverdue ? "text-danger fw-bold" : "")">
-                                        @t.DueAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                    <div class="small @(t.IsOverdue ? "text-danger fw-bold" : "text-muted")">
+                                        @t.DueAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
                                         @if (t.IsOverdue)
                                         {
-                                            <span class="badge bg-danger-subtle text-danger ms-1">Quá hạn</span>
+                                            <span class="badge bg-danger ms-1">Overdue</span>
                                         }
                                     </div>
                                 </td>

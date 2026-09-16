@@ -42,8 +42,8 @@ public record DashboardViewModelData(
 public interface IDashboardService
 {
     /// <summary>
-    /// Lấy toàn bộ số liệu thống kê Dashboard tối ưu bằng AsNoTracking, LINQ GroupBy và Cache.
-    /// Nếu là Agent (chỉ có quyền ViewAssigned), chỉ tính số liệu liên quan đến Agent đó.
+    /// Retrieves aggregated dashboard metrics optimized with AsNoTracking, LINQ GroupBy, and memory caching.
+    /// If user is an agent (with ViewAssigned permission only), restricts metrics to that agent's tickets.
     /// </summary>
     Task<DashboardViewModelData> GetDashboardDataAsync(string currentUserId, bool isSystemWide);
 }

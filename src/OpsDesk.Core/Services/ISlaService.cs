@@ -5,22 +5,22 @@ namespace OpsDesk.Core.Services;
 public interface ISlaService
 {
     /// <summary>
-    /// Tính thời hạn xử lý (DueAt) dựa trên thời điểm tạo và mức độ ưu tiên:
-    /// - Critical: 4 giờ
-    /// - High: 24 giờ
-    /// - Medium: 48 giờ
-    /// - Low: 72 giờ
+    /// Calculates resolution deadline (DueAt) based on creation time and ticket priority:
+    /// - Critical: 4 hours
+    /// - High: 24 hours
+    /// - Medium: 48 hours
+    /// - Low: 72 hours
     /// </summary>
     DateTime CalculateDueAt(DateTime createdAt, TicketPriority priority);
 
     /// <summary>
-    /// Kiểm tra ticket đã quá hạn chưa:
-    /// Quá hạn khi hiện tại > DueAt và ticket chưa ở trạng thái Resolved hoặc Closed.
+    /// Checks whether a ticket is overdue:
+    /// Overdue when Current Time > DueAt and status is not Resolved or Closed.
     /// </summary>
     bool IsOverdue(DateTime dueAt, TicketStatus status);
 
     /// <summary>
-    /// Lấy thời lượng SLA dạng TimeSpan tương ứng với mức độ ưu tiên.
+    /// Gets SLA duration as TimeSpan corresponding to priority.
     /// </summary>
     TimeSpan GetSlaDuration(TicketPriority priority);
 }

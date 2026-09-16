@@ -1,76 +1,153 @@
 @model OpsDesk.Web.ViewModels.Role.EditRolePermissionsViewModel
 @{
-    ViewData["Title"] = $"Phân quyền: {Model.RoleName}";
+    ViewData["Title"] = $"Permissions: {Model.RoleName}";
 }
 
 <div class="mb-4">
-    <a asp-action="Index" class="btn btn-link text-decoration-none p-0 mb-2">
-        <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách vai trò
+    <a asp-action="Index" class="btn btn-sm btn-outline-secondary mb-3">
+        <i class="bx bx-arrow-back me-1"></i>Back to Roles List
     </a>
-    <div class="d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div>
-            <h1 class="h4 fw-bold mb-1">Phân quyền cho vai trò: <span class="text-primary">@Model.RoleName</span></h1>
-            <p class="text-muted small mb-0">Tích chọn các quyền hạn mà người dùng thuộc vai trò này được phép thực hiện</p>
-        </div>
-        <div>
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnSelectAll">Chọn tất cả</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnDeselectAll">Bỏ chọn tất cả</button>
+            <h4 class="fw-bold mb-1">
+                Configure Permissions: <span class="text-primary">@Model.RoleName</span>
+            </h4>
+            <p class="text-muted mb-0">Select individual capabilities or toggle full modules for this role.</p>
         </div>
     </div>
 </div>
 
 <form asp-action="EditPermissions" method="post">
+    @Html.AntiForgeryToken()
     <input type="hidden" asp-for="RoleId" />
     <input type="hidden" asp-for="RoleName" />
 
     <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" role="alert"></div>
 
-    <div class="row g-3">
-        @foreach (var group in Model.AllGroups)
-        {
-            <div class="col-md-6">
-                <div class="card h-100 shadow-sm border-0">
-                    <div class="card-header bg-light border-bottom py-2 d-flex align-items-center justify-content-between">
-                        <span class="fw-semibold text-dark">@group.Domain</span>
+    <!-- 1 Single Unified Hierarchical List Card -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2 border-bottom py-3">
+            <div>
+                <h5 class="card-title mb-0 fw-semibold">Permission Modules & Capabilities</h5>
+                <small class="text-muted">Manage module-level and action-level access rights</small>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnSelectAll">
+                    <i class="bx bx-check-double me-1"></i>Select All
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnDeselectAll">
+                    <i class="bx bx-x me-1"></i>Deselect All
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                @foreach (var group in Model.AllGroups)
+                {
+                    var groupId = "group_" + group.Domain.ToLower();
+                    var iconClass = group.Domain switch
+                    {
+                        "Dashboard" => "bx-home-circle",
+                        "Employee" => "bx-user-check",
+                        "Role" => "bx-shield-quarter",
+                        "Customer" => "bx-buildings",
+                        "Ticket" => "bx-support",
+                        "Audit" => "bx-history",
+                        _ => "bx-key"
+                    };
+
+                    <!-- Parent Module Item -->
+                    <div class="list-group-item bg-light border-bottom py-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-label-primary p-2 rounded me-3">
+                                    <i class="bx @iconClass fs-5"></i>
+                                </span>
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-dark">@group.Domain Management</h6>
+                                    <small class="text-muted">@group.Items.Count permissions available</small>
+                                </div>
+                            </div>
+                            <div class="form-check form-switch m-0 d-flex align-items-center">
+                                <input class="form-check-input group-master-switch cursor-pointer" type="checkbox" 
+                                       id="@groupId" data-target-group="@groupId" />
+                                <label class="form-check-label small fw-semibold text-muted ms-2 cursor-pointer" for="@groupId">Toggle Module</label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body py-2">
-                        <div class="d-flex flex-column gap-2">
-                            @foreach (var item in group.Items)
-                            {
-                                <div class="form-check">
-                                    <input class="form-check-input perm-checkbox" type="checkbox" 
+
+                    <!-- Subitems (Granular Permissions) -->
+                    @foreach (var item in group.Items)
+                    {
+                        <div class="list-group-item px-4 py-3 border-bottom bg-white" style="padding-left: 4.5rem !important;">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <label class="form-check-label fw-semibold text-dark cursor-pointer d-block mb-1" for="perm_@item.Value.Replace('.', '_')">
+                                        @item.Label
+                                    </label>
+                                    <small class="text-muted font-monospace">@item.Value</small>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input perm-checkbox cursor-pointer" type="checkbox" 
+                                           data-group="@groupId"
                                            name="SelectedPermissions" 
                                            value="@item.Value" 
                                            id="perm_@item.Value.Replace('.', '_')" 
                                            @(item.IsSelected ? "checked" : "") />
-                                    <label class="form-check-label" for="perm_@item.Value.Replace('.', '_')">
-                                        <span class="fw-medium">@item.Label</span>
-                                        <small class="text-muted d-block font-monospace">@item.Value</small>
-                                    </label>
                                 </div>
-                            }
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    }
+                }
             </div>
-        }
-    </div>
+        </div>
 
-    <div class="d-flex justify-content-end gap-2 mt-4">
-        <a asp-action="Index" class="btn btn-outline-secondary">Hủy</a>
-        <button type="submit" class="btn btn-primary">
-            <i class="bi bi-check2-circle me-1"></i>Lưu cấu hình quyền
-        </button>
+        <div class="card-footer d-flex justify-content-end gap-2 border-top py-3">
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary d-flex align-items-center">
+                <i class="bx bx-save me-1"></i>Save Permissions
+            </button>
+        </div>
     </div>
 </form>
 
 @section Scripts {
     <script>
+        // Update master switches on page load
+        function updateMasterSwitches() {
+            document.querySelectorAll('.group-master-switch').forEach(master => {
+                const targetGroup = master.getAttribute('data-target-group');
+                const children = document.querySelectorAll(`.perm-checkbox[data-group="${targetGroup}"]`);
+                const allChecked = Array.from(children).every(cb => cb.checked);
+                master.checked = allChecked && children.length > 0;
+            });
+        }
+
+        // Handle master switch click
+        document.querySelectorAll('.group-master-switch').forEach(master => {
+            master.addEventListener('change', function() {
+                const targetGroup = this.getAttribute('data-target-group');
+                document.querySelectorAll(`.perm-checkbox[data-group="${targetGroup}"]`).forEach(cb => {
+                    cb.checked = master.checked;
+                });
+            });
+        });
+
+        // Handle individual switch click to sync master switch
+        document.querySelectorAll('.perm-checkbox').forEach(cb => {
+            cb.addEventListener('change', updateMasterSwitches);
+        });
+
+        // Select All / Deselect All
         document.getElementById('btnSelectAll').addEventListener('click', function() {
-            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = true);
+            document.querySelectorAll('.perm-checkbox, .group-master-switch').forEach(cb => cb.checked = true);
         });
         document.getElementById('btnDeselectAll').addEventListener('click', function() {
-            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.perm-checkbox, .group-master-switch').forEach(cb => cb.checked = false);
         });
+
+        // Initialize state
+        updateMasterSwitches();
     </script>
 }

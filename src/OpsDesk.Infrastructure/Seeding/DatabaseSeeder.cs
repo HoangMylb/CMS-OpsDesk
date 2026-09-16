@@ -138,33 +138,25 @@ public class DatabaseSeeder
         {
             new
             {
-                FullName = "System Administrator",
-                Email = "admin@opsdesk.local",
-                Password = "Admin@123456",
-                Role = "Admin",
-                Department = managementDept,
-            },
-            new
-            {
                 FullName = "Sarah Jenkins",
-                Email = "manager@opsdesk.local",
-                Password = "Manager@123456",
+                Email = "manager@hoangmy.vn",
+                Password = "Nguyenmy@2026",
                 Role = "Manager",
                 Department = managementDept,
             },
             new
             {
                 FullName = "Alex Rivera",
-                Email = "agent1@opsdesk.local",
-                Password = "Agent@123456",
+                Email = "agent1@hoangmy.vn",
+                Password = "Nguyenmy@2026",
                 Role = "SupportAgent",
                 Department = supportDept,
             },
             new
             {
                 FullName = "David Chen",
-                Email = "agent2@opsdesk.local",
-                Password = "Agent@123456",
+                Email = "agent2@hoangmy.vn",
+                Password = "Nguyenmy@2026",
                 Role = "SupportAgent",
                 Department = supportDept,
             },
@@ -373,10 +365,10 @@ public class DatabaseSeeder
     {
         if (await _db.Tickets.AnyAsync()) return;
 
-        var admin = await _userManager.FindByEmailAsync("admin@opsdesk.local");
-        var manager = await _userManager.FindByEmailAsync("manager@opsdesk.local");
-        var agent1 = await _userManager.FindByEmailAsync("agent1@opsdesk.local");
-        var agent2 = await _userManager.FindByEmailAsync("agent2@opsdesk.local");
+        var admin = await _userManager.FindByEmailAsync("admin@hoangmy.vn");
+        var manager = await _userManager.FindByEmailAsync("manager@hoangmy.vn");
+        var agent1 = await _userManager.FindByEmailAsync("agent1@hoangmy.vn");
+        var agent2 = await _userManager.FindByEmailAsync("agent2@hoangmy.vn");
 
         var customers = await _db.Customers.ToListAsync();
         if (customers.Count == 0 || admin == null || manager == null || agent1 == null) return;

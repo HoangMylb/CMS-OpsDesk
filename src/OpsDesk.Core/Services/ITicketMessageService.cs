@@ -20,13 +20,13 @@ public record AddMessageRequest(
 public interface ITicketMessageService
 {
     /// <summary>
-    /// Lấy danh sách tin nhắn của ticket sử dụng AsNoTracking và DTO projection.
-    /// Tự động lọc bỏ các ghi chú nội bộ (IsInternal = true) nếu người dùng không có quyền xem.
+    /// Retrieves ticket message list using AsNoTracking and DTO projection.
+    /// Automatically filters out internal notes (IsInternal = true) if user lacks permission.
     /// </summary>
     Task<List<TicketMessageDto>> GetMessagesAsync(int ticketId, string currentUserId, bool canViewInternal);
 
     /// <summary>
-    /// Thêm tin nhắn hoặc ghi chú nội bộ mới. Chặn tin nhắn rỗng (BR-09).
+    /// Adds a new ticket reply or internal note. Rejects blank messages (BR-09).
     /// </summary>
     Task<ServiceResult<int>> AddMessageAsync(AddMessageRequest request, string authorUserId);
 }

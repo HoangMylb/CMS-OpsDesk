@@ -11,18 +11,18 @@ public record StatusTransitionRequest(
 public interface ITicketWorkflowService
 {
     /// <summary>
-    /// Kiểm tra xem bước chuyển trạng thái có hợp lệ theo bảng quy tắc máy trạng thái không.
+    /// Checks whether the state transition is valid according to the finite state machine matrix.
     /// </summary>
     bool CanTransition(TicketStatus currentStatus, TicketStatus targetStatus);
 
     /// <summary>
-    /// Lấy danh sách các trạng thái mục tiêu hợp lệ mà ticket hiện tại có thể chuyển tới.
+    /// Gets the list of valid target statuses that the ticket can transition to.
     /// </summary>
     List<TicketStatus> GetAllowedTransitions(TicketStatus currentStatus);
 
     /// <summary>
-    /// Thực hiện chuyển trạng thái ticket, cập nhật mốc thời gian ResolvedAt/ClosedAt,
-    /// ghi nhận TicketStatusHistory và ghi AuditLog bằng Unit of Work transaction cực ngắn.
+    /// Executes ticket status transition, updates timestamps (ResolvedAt/ClosedAt),
+    /// records TicketStatusHistory, and emits AuditLog within a short Unit of Work transaction.
     /// </summary>
     Task<ServiceResult> TransitionAsync(StatusTransitionRequest request, string currentUserId);
 }

@@ -1,83 +1,82 @@
 @model OpsDesk.Web.ViewModels.Role.RoleListViewModel
 @using OpsDesk.Core.Authorization
 @{
-    ViewData["Title"] = "Vai trò & Phân quyền";
+    ViewData["Title"] = "Roles & Permissions";
 }
 
-<div class="d-flex align-items-center justify-content-between mb-4">
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
     <div>
-        <h1 class="h4 fw-bold mb-1">Vai trò & Phân quyền</h1>
-        <p class="text-muted small mb-0">Quản lý các vai trò và cấu hình quyền truy cập (Permission-based)</p>
+        <h4 class="fw-bold py-1 mb-0">Roles & Permissions</h4>
+        <p class="text-muted mb-0">Manage authorization roles and granular policy-based access permissions.</p>
     </div>
-    <a asp-action="Create" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i>Thêm vai trò
+    <a asp-action="Create" class="btn btn-primary d-flex align-items-center">
+        <i class="bx bx-plus me-1"></i>Add Custom Role
     </a>
 </div>
 
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle me-1"></i>@TempData["SuccessMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-circle me-1"></i>@TempData["ErrorMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-
 <div class="card shadow-sm border-0">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+    <div class="table-responsive text-nowrap">
+        <table class="table table-hover">
+            <thead>
                 <tr>
-                    <th style="width: 200px;">Tên vai trò</th>
-                    <th>Quyền hạn được cấp</th>
-                    <th style="width: 150px;" class="text-end">Hành động</th>
+                    <th style="width: 260px;">Role Name</th>
+                    <th>Permissions Scope</th>
+                    <th style="width: 200px;" class="text-end">Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="table-border-bottom-0">
                 @foreach (var role in Model.Roles)
                 {
                     <tr>
                         <td>
-                            <span class="fw-semibold">@role.Name</span>
-                            @if (role.Name is "Admin" or "Manager" or "SupportAgent")
-                            {
-                                <span class="badge bg-secondary-subtle text-secondary ms-1">Mặc định</span>
-                            }
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-sm me-3">
+                                    <span class="avatar-initial rounded-circle bg-label-primary">
+                                        <i class="bx bx-shield-quarter"></i>
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="fw-semibold text-dark d-block">@role.Name</span>
+                                    @if (role.Name is "Admin" or "ADMIN" or "Manager" or "MANAGER" or "SupportAgent" or "SUPPORT_AGENT" or "SUPER_ADMIN" or "SuperAdmin")
+                                    {
+                                        <span class="badge bg-label-secondary">System Protected</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-label-info">Custom Role</span>
+                                    }
+                                </div>
+                            </div>
                         </td>
                         <td>
-                            <div class="d-flex flex-wrap gap-1">
-                                @if (role.Permissions.Count == 0)
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-label-primary fw-semibold">
+                                    @role.Permissions.Count Capabilities Assigned
+                                </span>
+                                @if (role.Permissions.Count > 0)
                                 {
-                                    <span class="text-muted small fst-italic">Chưa có quyền hạn nào</span>
-                                }
-                                else
-                                {
-                                    @foreach (var perm in role.Permissions)
-                                    {
-                                        <span class="badge bg-light text-dark border">@perm</span>
-                                    }
+                                    <button type="button" class="btn btn-xs btn-outline-secondary d-flex align-items-center"
+                                            onclick='showRolePermissionsPopup("@role.Name", @Html.Raw(System.Text.Json.JsonSerializer.Serialize(role.Permissions)))'>
+                                        <i class="bx bx-show me-1"></i>Quick View
+                                    </button>
                                 }
                             </div>
                         </td>
                         <td class="text-end">
-                            <div class="d-inline-flex gap-1">
-                                <a asp-action="EditPermissions" asp-route-id="@role.Id" 
-                                   class="btn btn-outline-primary btn-sm" title="Phân quyền">
-                                    <i class="bi bi-shield-lock me-1"></i>Phân quyền
+                            <div class="d-flex gap-1 justify-content-end align-items-center">
+                                <a asp-action="EditPermissions" asp-route-id="@role.Id" class="btn btn-sm btn-outline-primary" title="Configure Permissions">
+                                    <i class="bx bx-slider-alt me-1"></i>Configure
                                 </a>
-                                @if (role.Name is not ("Admin" or "Manager" or "SupportAgent"))
+                                @if (role.Name is not ("Admin" or "ADMIN" or "Manager" or "MANAGER" or "SupportAgent" or "SUPPORT_AGENT" or "SUPER_ADMIN" or "SuperAdmin"))
                                 {
-                                    <form asp-action="Delete" asp-route-id="@role.Id" method="post" 
-                                          onsubmit="return confirm('Bạn có chắc muốn xóa vai trò này?');" class="d-inline">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa">
-                                            <i class="bi bi-trash"></i>
+                                    <form asp-action="Delete" asp-route-id="@role.Id" method="post" class="d-inline"
+                                          data-confirm="Are you sure you want to delete role @role.Name?"
+                                          data-confirm-title="Delete Role"
+                                          data-confirm-btn="Delete"
+                                          data-confirm-class="btn-danger">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-icon btn-outline-danger" title="Delete Role">
+                                            <i class="bx bx-trash"></i>
                                         </button>
                                     </form>
                                 }
@@ -89,3 +88,76 @@
         </table>
     </div>
 </div>
+
+<!-- Modal: View Role Permissions Popup -->
+<div class="modal fade" id="rolePermissionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow">
+            <div class="modal-header border-bottom">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-label-primary p-2 rounded me-2">
+                        <i class="bx bx-shield-quarter fs-5"></i>
+                    </span>
+                    <div>
+                        <h5 class="modal-title fw-bold" id="roleModalTitle">Role Permissions</h5>
+                        <small class="text-muted" id="roleModalSubtitle"></small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="roleModalBody">
+                <!-- Injected via JavaScript -->
+            </div>
+            <div class="modal-footer border-top py-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showRolePermissionsPopup(roleName, permissions) {
+            document.getElementById('roleModalTitle').textContent = `Permissions for: ${roleName}`;
+            document.getElementById('roleModalSubtitle').textContent = `${permissions.length} total permissions enabled`;
+
+            const container = document.getElementById('roleModalBody');
+            if (!permissions || permissions.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center py-4 mb-0">No permissions assigned to this role.</p>';
+            } else {
+                // Group permissions by domain (prefix before '.')
+                const groups = {};
+                permissions.forEach(p => {
+                    const parts = p.split('.');
+                    const domain = parts[0] || 'General';
+                    if (!groups[domain]) groups[domain] = [];
+                    groups[domain].push(p);
+                });
+
+                let html = '<div class="row g-3">';
+                for (const [domain, items] of Object.entries(groups)) {
+                    html += `
+                        <div class="col-md-6">
+                            <div class="card h-100 bg-lighter border border-light shadow-none">
+                                <div class="card-header bg-transparent py-2 border-bottom fw-bold text-dark d-flex justify-content-between align-items-center">
+                                    <span>${domain}</span>
+                                    <span class="badge bg-label-primary">${items.length}</span>
+                                </div>
+                                <div class="card-body py-2">
+                                    <ul class="list-unstyled mb-0 d-flex flex-column gap-1 small">
+                                        ${items.map(i => `<li class="d-flex align-items-center"><i class="bx bx-check text-success me-1"></i><code>${i}</code></li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+                container.innerHTML = html;
+            }
+
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('rolePermissionsModal'));
+            modal.show();
+        }
+    </script>
+}

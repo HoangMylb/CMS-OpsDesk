@@ -6,20 +6,12 @@ using OpsDesk.Core.Entities;
 namespace OpsDesk.Web.Filters;
 
 /// <summary>
-/// Action filter kiểm tra xem người dùng đang đăng nhập có còn IsActive = true không.
+/// Action filter that checks whether the currently logged-in user is still active (IsActive = true).
 ///
-/// Vấn đề cần giải quyết:
-/// Cookie xác thực có thể còn hiệu lực nhiều giờ sau khi Admin đã vô hiệu hóa tài khoản.
-/// ASP.NET Core Identity không tự động thu hồi cookie khi IsActive thay đổi.
-/// Filter này giải quyết vấn đề đó bằng cách kiểm tra database trong mỗi request.
-///
-/// Trade-off:
-/// Mỗi request của user đã đăng nhập sẽ có một truy vấn DB nhỏ để kiểm tra IsActive.
-/// Đây là chi phí chấp nhận được cho một hệ thống nội bộ — security > performance tuyệt đối.
-/// Nếu performance là vấn đề, có thể cache kết quả này trong 1-2 phút.
-///
-/// Đăng ký filter này trong Program.cs:
-///   options.Filters.Add&lt;ActiveUserFilter&gt;();
+/// Problem addressed:
+/// Authentication cookies may remain valid for hours after an admin has deactivated an account.
+/// ASP.NET Core Identity does not automatically revoke existing cookies upon IsActive changes.
+/// This filter ensures deactivated accounts cannot perform any further actions.
 /// </summary>
 public class ActiveUserFilter : IAsyncActionFilter
 {
@@ -41,32 +33,28 @@ public class ActiveUserFilter : IAsyncActionFilter
     {
         var user = context.HttpContext.User;
 
-        // Chỉ kiểm tra với user đã đăng nhập
         if (user.Identity?.IsAuthenticated == true)
         {
             var appUser = await _userManager.GetUserAsync(user);
 
-            // Trường hợp 1: Không tìm thấy user trong DB (account bị xóa — hiếm xảy ra)
-            // Trường hợp 2: IsActive = false (account bị vô hiệu hóa bởi Admin)
+            // Case 1: User no longer found in DB
+            // Case 2: IsActive = false (Account deactivated by Admin)
             if (appUser == null || !appUser.IsActive)
             {
                 _logger.LogWarning(
-                    "Người dùng {Email} cố truy cập khi tài khoản không còn hợp lệ (IsActive={IsActive}). Đăng xuất.",
+                    "User {Email} attempted access while account is inactive (IsActive={IsActive}). Signing out.",
                     appUser?.Email ?? "unknown",
                     appUser?.IsActive);
 
-                // Đăng xuất — xóa cookie
                 await _signInManager.SignOutAsync();
 
-                // Redirect về trang Login với thông báo rõ ràng
                 context.Result = new RedirectToActionResult(
                     "Login", "Account",
-                    new { message = "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ Admin." });
+                    new { message = "Your account has been deactivated. Please contact your administrator." });
                 return;
             }
         }
 
-        // User hợp lệ — tiếp tục xử lý request
         await next();
     }
 }

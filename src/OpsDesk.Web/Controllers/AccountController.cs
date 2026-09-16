@@ -7,11 +7,7 @@ using OpsDesk.Web.ViewModels.Account;
 namespace OpsDesk.Web.Controllers;
 
 /// <summary>
-/// Xử lý toàn bộ luồng xác thực: đăng nhập, đăng xuất, đổi mật khẩu, trang từ chối truy cập.
-///
-/// Controller này có một ngoại lệ: các action Login và AccessDenied phải cho phép truy cập
-/// khi CHƯA đăng nhập ([AllowAnonymous]). Tất cả các controller khác đều yêu cầu đăng nhập
-/// (được cấu hình trong Program.cs qua AuthorizeFilter toàn cục).
+/// Handles authentication workflow: login, logout, password change, access denied.
 /// </summary>
 public class AccountController : Controller
 {
@@ -37,11 +33,9 @@ public class AccountController : Controller
     [AllowAnonymous]
     public IActionResult Login(string? returnUrl = null, string? message = null)
     {
-        // Nếu đã đăng nhập rồi thì về Dashboard
         if (User.Identity?.IsAuthenticated == true)
             return RedirectToAction("Index", "Dashboard");
 
-        // Hiển thị thông báo (ví dụ: "Tài khoản bị vô hiệu hóa") từ ActiveUserFilter
         if (!string.IsNullOrEmpty(message))
             ViewBag.ErrorMessage = message;
 
@@ -59,29 +53,24 @@ public class AccountController : Controller
         if (!ModelState.IsValid)
             return View(model);
 
-        // Tìm user theo email hoặc tên đăng nhập
+        // Find user by email or username
         var user = await _userManager.FindByEmailAsync(model.Email) ?? await _userManager.FindByNameAsync(model.Email);
 
         if (user == null)
         {
-            // QUAN TRỌNG VỀ BẢO MẬT: Không nói "email không tồn tại" để tránh
-            // attacker dò tìm email hợp lệ trong hệ thống. Luôn dùng thông báo chung.
-            ModelState.AddModelError(string.Empty, "Email hoặc mật khẩu không đúng.");
+            // Security: generic error message to prevent account enumeration
+            ModelState.AddModelError(string.Empty, "Invalid email/username or password.");
             return View(model);
         }
 
-        // Kiểm tra IsActive TRƯỚC khi thử đăng nhập
-        // Lý do: PasswordSignInAsync vẫn thành công nếu mật khẩu đúng dù IsActive = false.
-        // Ta phải chặn từ trước, không để lộ rằng mật khẩu đúng.
+        // Check IsActive prior to sign-in attempt
         if (!user.IsActive)
         {
-            _logger.LogWarning("Người dùng {Email} cố đăng nhập khi tài khoản đã bị vô hiệu hóa.", model.Email);
-            ModelState.AddModelError(string.Empty, "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ Admin.");
+            _logger.LogWarning("User {Email} attempted login while account is deactivated.", model.Email);
+            ModelState.AddModelError(string.Empty, "Your account has been deactivated. Please contact your administrator.");
             return View(model);
         }
 
-        // Thực hiện đăng nhập
-        // lockoutOnFailure: true → sau 5 lần sai sẽ khóa tài khoản 15 phút (cấu hình trong Program.cs)
         var result = await _signInManager.PasswordSignInAsync(
             user,
             model.Password,
@@ -90,10 +79,8 @@ public class AccountController : Controller
 
         if (result.Succeeded)
         {
-            _logger.LogInformation("Người dùng {Email} đăng nhập thành công.", model.Email);
+            _logger.LogInformation("User {Email} logged in successfully.", model.Email);
 
-            // Redirect an toàn: chỉ cho phép redirect về URL nội bộ
-            // Tránh Open Redirect attack (attacker có thể gán returnUrl = http://malicious-site.com)
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
 
@@ -102,12 +89,12 @@ public class AccountController : Controller
 
         if (result.IsLockedOut)
         {
-            _logger.LogWarning("Tài khoản {Email} bị khóa do đăng nhập sai nhiều lần.", model.Email);
-            ModelState.AddModelError(string.Empty, "Tài khoản đã bị khóa tạm thời do đăng nhập sai quá nhiều lần. Vui lòng thử lại sau 15 phút.");
+            _logger.LogWarning("Account {Email} locked out due to multiple failed login attempts.", model.Email);
+            ModelState.AddModelError(string.Empty, "Account locked temporarily due to too many failed attempts. Please try again later.");
             return View(model);
         }
 
-        ModelState.AddModelError(string.Empty, "Email hoặc mật khẩu không đúng.");
+        ModelState.AddModelError(string.Empty, "Invalid email/username or password.");
         return View(model);
     }
 
@@ -121,7 +108,7 @@ public class AccountController : Controller
     {
         var email = User.Identity?.Name;
         await _signInManager.SignOutAsync();
-        _logger.LogInformation("Người dùng {Email} đã đăng xuất.", email);
+        _logger.LogInformation("User {Email} logged out.", email);
         return RedirectToAction("Login", "Account");
     }
 
@@ -146,7 +133,6 @@ public class AccountController : Controller
         if (user == null)
             return RedirectToAction("Login");
 
-        // Identity tự kiểm tra CurrentPassword có đúng không
         var result = await _userManager.ChangePasswordAsync(
             user,
             model.CurrentPassword,
@@ -154,16 +140,13 @@ public class AccountController : Controller
 
         if (result.Succeeded)
         {
-            // Refresh sign-in: cập nhật security stamp trong cookie
-            // Không làm bước này, cookie cũ có thể bị invalidate bởi Identity's security stamp validation
             await _signInManager.RefreshSignInAsync(user);
-            _logger.LogInformation("Người dùng {Email} đổi mật khẩu thành công.", user.Email);
+            _logger.LogInformation("User {Email} changed password successfully.", user.Email);
 
-            TempData["SuccessMessage"] = "Đổi mật khẩu thành công!";
+            TempData["SuccessMessage"] = "Password changed successfully!";
             return RedirectToAction("ChangePassword");
         }
 
-        // Identity trả về lỗi chi tiết (mật khẩu cũ sai, mật khẩu mới không đủ mạnh...)
         foreach (var error in result.Errors)
         {
             ModelState.AddModelError(string.Empty, error.Description);

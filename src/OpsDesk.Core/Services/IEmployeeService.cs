@@ -3,7 +3,9 @@ using OpsDesk.Core.Entities;
 
 namespace OpsDesk.Core.Services;
 
-// DTO dùng cho danh sách nhân viên (projection để tránh load toàn bộ entity)
+/// <summary>
+/// DTO for employee listing projection to prevent fetching unnecessary entity fields.
+/// </summary>
 public record EmployeeListItem(
     string Id,
     string FullName,
@@ -14,7 +16,9 @@ public record EmployeeListItem(
     DateTime CreatedAt
 );
 
-// Request object để tạo nhân viên mới — tách biệt khỏi ViewModel Web
+/// <summary>
+/// Request DTO for creating a new employee.
+/// </summary>
 public record CreateEmployeeRequest(
     string FullName,
     string Email,
@@ -23,7 +27,9 @@ public record CreateEmployeeRequest(
     string? RoleName
 );
 
-// Request object để cập nhật nhân viên
+/// <summary>
+/// Request DTO for updating an existing employee.
+/// </summary>
 public record UpdateEmployeeRequest(
     string FullName,
     string Email,
@@ -33,7 +39,7 @@ public record UpdateEmployeeRequest(
 
 public interface IEmployeeService
 {
-    /// <summary>Danh sách phân trang với bộ lọc. Trả về (items, totalCount).</summary>
+    /// <summary>Paginated list with filter criteria. Returns (items, totalCount).</summary>
     Task<(List<EmployeeListItem> Items, int TotalCount)> GetPagedAsync(
         string? search, bool? isActive, int page, int pageSize);
 
@@ -43,18 +49,18 @@ public interface IEmployeeService
 
     Task<List<IdentityRole>> GetAllRolesAsync();
 
-    /// <summary>Lấy role hiện tại của một user (mỗi user có 1 role).</summary>
+    /// <summary>Retrieves primary assigned role for a given user.</summary>
     Task<string?> GetCurrentRoleAsync(string userId);
 
-    /// <summary>Tạo tài khoản nhân viên mới.</summary>
+    /// <summary>Creates a new employee account.</summary>
     Task<ServiceResult> CreateAsync(CreateEmployeeRequest request);
 
-    /// <summary>Cập nhật thông tin nhân viên (không thay đổi mật khẩu).</summary>
+    /// <summary>Updates employee details (excluding password).</summary>
     Task<ServiceResult> UpdateAsync(string id, UpdateEmployeeRequest request);
 
-    /// <summary>Vô hiệu hóa tài khoản (IsActive = false). Không xóa.</summary>
+    /// <summary>Deactivates an account (IsActive = false). Soft deactivation without deleting.</summary>
     Task<ServiceResult> DeactivateAsync(string id, string changedByUserId);
 
-    /// <summary>Kích hoạt lại tài khoản (IsActive = true).</summary>
+    /// <summary>Reactivates an account (IsActive = true).</summary>
     Task<ServiceResult> ActivateAsync(string id, string changedByUserId);
 }

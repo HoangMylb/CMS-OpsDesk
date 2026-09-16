@@ -63,7 +63,7 @@ public class TicketController : Controller
 
         var agents = await _ticketService.GetActiveAgentsForAssignmentAsync();
         var agentOptions = agents.Select(a => new SelectListItem(a.FullName, a.Id, a.Id == assignedToUserId)).ToList();
-        agentOptions.Insert(0, new SelectListItem("-- Tất cả nhân viên --", ""));
+        agentOptions.Insert(0, new SelectListItem("-- All Staff --", ""));
 
         var canCreate = (await _authService.AuthorizeAsync(User, Permissions.Ticket.Create)).Succeeded;
         var canAssign = (await _authService.AuthorizeAsync(User, Permissions.Ticket.Assign)).Succeeded;
@@ -111,12 +111,12 @@ public class TicketController : Controller
 
         var agents = await _ticketService.GetActiveAgentsForAssignmentAsync();
         var agentOptions = agents.Select(a => new SelectListItem(a.FullName, a.Id, a.Id == ticket.AssignedToUserId)).ToList();
-        agentOptions.Insert(0, new SelectListItem("-- Chọn nhân viên phụ trách --", ""));
+        agentOptions.Insert(0, new SelectListItem("-- Select Assignee --", ""));
 
-        // Lấy tin nhắn (tất cả nhân viên được xem ghi chú nội bộ, hoặc tùy chính sách)
+        // Fetch messages
         var messages = await _messageService.GetMessagesAsync(ticket.Id, _currentUser.UserId!, canViewInternal: true);
 
-        // Lấy các bước chuyển trạng thái hợp lệ
+        // Fetch allowed status transitions
         var allowedTransitions = _workflowService.GetAllowedTransitions(ticket.Status);
 
         var vm = new TicketDetailViewModel
@@ -262,7 +262,7 @@ public class TicketController : Controller
         }
         else
         {
-            TempData["SuccessMessage"] = "Cập nhật phân công nhân viên thành công.";
+            TempData["SuccessMessage"] = "Ticket assignment updated successfully.";
         }
 
         return RedirectToAction(nameof(Detail), new { id = model.TicketId });
@@ -273,7 +273,6 @@ public class TicketController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> TransitionStatus(TransitionTicketStatusViewModel model)
     {
-        // Kiểm tra quyền tương ứng với trạng thái mục tiêu
         var target = model.TargetStatus;
         string? requiredPolicy = target switch
         {
@@ -289,7 +288,7 @@ public class TicketController : Controller
             var authResult = await _authService.AuthorizeAsync(User, requiredPolicy);
             if (!authResult.Succeeded)
             {
-                TempData["ErrorMessage"] = $"Bạn không có quyền thực hiện thao tác '{target}'.";
+                TempData["ErrorMessage"] = $"You do not have permission to transition ticket to '{target}'.";
                 return RedirectToAction(nameof(Detail), new { id = model.TicketId });
             }
         }
@@ -304,7 +303,7 @@ public class TicketController : Controller
         }
         else
         {
-            TempData["SuccessMessage"] = $"Đã chuyển trạng thái ticket sang '{target}'.";
+            TempData["SuccessMessage"] = $"Ticket status transitioned to '{target}'.";
         }
 
         return RedirectToAction(nameof(Detail), new { id = model.TicketId });
@@ -317,7 +316,7 @@ public class TicketController : Controller
     {
         if (string.IsNullOrWhiteSpace(model.Content))
         {
-            TempData["ErrorMessage"] = "Nội dung phản hồi hoặc ghi chú không được để trống.";
+            TempData["ErrorMessage"] = "Message content or note cannot be empty.";
             return RedirectToAction(nameof(Detail), new { id = model.TicketId });
         }
 
@@ -332,8 +331,8 @@ public class TicketController : Controller
         else
         {
             TempData["SuccessMessage"] = model.IsInternal
-                ? "Đã thêm ghi chú nội bộ thành công."
-                : "Đã đăng tin nhắn phản hồi thành công.";
+                ? "Internal note added successfully."
+                : "Reply posted successfully.";
         }
 
         return RedirectToAction(nameof(Detail), new { id = model.TicketId });
@@ -349,6 +348,6 @@ public class TicketController : Controller
             Selected = c.Id == vm.CustomerId
         }).ToList();
 
-        vm.CustomerOptions.Insert(0, new SelectListItem("-- Chọn khách hàng --", ""));
+        vm.CustomerOptions.Insert(0, new SelectListItem("-- Select Customer --", ""));
     }
 }

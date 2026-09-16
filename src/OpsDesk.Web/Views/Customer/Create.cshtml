@@ -1,52 +1,69 @@
 @model OpsDesk.Web.ViewModels.Customer.CreateCustomerViewModel
 @{
-    ViewData["Title"] = "Thêm khách hàng";
+    ViewData["Title"] = "Add Customer";
 }
 
 <div class="row justify-content-center">
-    <div class="col-lg-7">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-transparent border-0 pt-4 pb-0">
-                <a asp-action="Index" class="btn btn-link text-decoration-none p-0 mb-2">
-                    <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách
+    <div class="col-lg-8">
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header d-flex align-items-center justify-content-between pb-0">
+                <div class="card-title mb-0">
+                    <h5 class="m-0 me-2 fw-semibold d-flex align-items-center">
+                        <i class="bx bx-user-plus text-primary me-2 fs-4"></i>Add New Customer
+                    </h5>
+                    <small class="text-muted">Enter contact and organizational details for support operations.</small>
+                </div>
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                    <i class="bx bx-arrow-back me-1"></i>Back to List
                 </a>
-                <h1 class="h5 fw-bold mb-1">Thêm khách hàng mới</h1>
-                <p class="text-muted small mb-0">Nhập thông tin người liên hệ hoặc doanh nghiệp cần hỗ trợ</p>
             </div>
-            <div class="card-body">
+            <div class="card-body pt-3">
                 <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
                     <div class="mb-3">
                         <label asp-for="Name" class="form-label fw-semibold"></label>
-                        <input asp-for="Name" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" autofocus />
+                        <div class="input-group input-group-merge">
+                            <span class="input-group-text"><i class="bx bx-user"></i></span>
+                            <input asp-for="Name" class="form-control" placeholder="e.g. John Smith" autofocus />
+                        </div>
                         <span asp-validation-for="Name" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="Email" class="form-label fw-semibold"></label>
-                        <input asp-for="Email" class="form-control" placeholder="nguyenvana@example.com" type="email" />
+                        <div class="input-group input-group-merge">
+                            <span class="input-group-text"><i class="bx bx-envelope"></i></span>
+                            <input asp-for="Email" class="form-control" placeholder="customer@example.com" type="email" />
+                        </div>
                         <span asp-validation-for="Email" class="text-danger small"></span>
-                        <div class="form-text">Email dùng để nhận thông báo tiến độ ticket và phải là duy nhất.</div>
+                        <div class="form-text">Used for communication and identification; must be unique.</div>
                     </div>
 
                     <div class="row mb-3 g-3">
                         <div class="col-md-6">
                             <label asp-for="Phone" class="form-label fw-semibold"></label>
-                            <input asp-for="Phone" class="form-control" placeholder="0901234567" />
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="bx bx-phone"></i></span>
+                                <input asp-for="Phone" class="form-control" placeholder="+1-555-0100" />
+                            </div>
                             <span asp-validation-for="Phone" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6">
                             <label asp-for="Company" class="form-label fw-semibold"></label>
-                            <input asp-for="Company" class="form-control" placeholder="Công ty ABC" />
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="bx bx-buildings"></i></span>
+                                <input asp-for="Company" class="form-control" placeholder="Acme Corporation" />
+                            </div>
                             <span asp-validation-for="Company" class="text-danger small"></span>
                         </div>
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 mt-4">
-                        <a asp-action="Index" class="btn btn-outline-secondary">Hủy</a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg me-1"></i>Thêm khách hàng
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary d-flex align-items-center">
+                            <i class="bx bx-check me-1"></i>Save Customer
                         </button>
                     </div>
                 </form>

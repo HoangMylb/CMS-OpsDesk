@@ -1,60 +1,79 @@
 @model OpsDesk.Web.ViewModels.Employee.CreateEmployeeViewModel
-@{ ViewData["Title"] = "Thêm nhân viên"; }
+@{
+    ViewData["Title"] = "Add Employee";
+}
 
 <div class="row justify-content-center">
-    <div class="col-lg-7">
-        <div class="card">
-            <div class="card-header d-flex align-items-center gap-2">
-                <i class="bi bi-person-plus text-primary"></i>
-                <span>Thêm nhân viên mới</span>
+    <div class="col-lg-8">
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header d-flex align-items-center justify-content-between pb-0">
+                <div class="card-title mb-0">
+                    <h5 class="m-0 me-2 fw-semibold d-flex align-items-center">
+                        <i class="bx bx-user-plus text-primary me-2 fs-4"></i>Add New Employee
+                    </h5>
+                    <small class="text-muted">Create staff login credentials and assign organizational roles.</small>
+                </div>
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                    <i class="bx bx-arrow-back me-1"></i>Back to List
+                </a>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body pt-3">
                 <form asp-action="Create" method="post">
                     @Html.AntiForgeryToken()
-                    <div asp-validation-summary="All" class="alert alert-danger py-2 small"></div>
+                    <div asp-validation-summary="All" class="alert alert-danger py-2 small" style="display:@(ViewData.ModelState.IsValid ? "none" : "block")"></div>
 
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label asp-for="FullName" class="form-label"></label>
-                            <input asp-for="FullName" class="form-control" />
+                            <label asp-for="FullName" class="form-label fw-semibold"></label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="bx bx-user"></i></span>
+                                <input asp-for="FullName" class="form-control" placeholder="e.g. Alex Morgan" autofocus />
+                            </div>
                             <span asp-validation-for="FullName" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="Email" class="form-label"></label>
-                            <input asp-for="Email" class="form-control" type="email" />
+                            <label asp-for="Email" class="form-label fw-semibold"></label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="bx bx-envelope"></i></span>
+                                <input asp-for="Email" class="form-control" type="email" placeholder="alex@company.com" />
+                            </div>
                             <span asp-validation-for="Email" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="Password" class="form-label"></label>
-                            <input asp-for="Password" class="form-control" />
+                            <label asp-for="Password" class="form-label fw-semibold"></label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="bx bx-lock-alt"></i></span>
+                                <input asp-for="Password" class="form-control" type="password" placeholder="············" />
+                            </div>
                             <span asp-validation-for="Password" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="ConfirmPassword" class="form-label"></label>
-                            <input asp-for="ConfirmPassword" class="form-control" />
+                            <label asp-for="ConfirmPassword" class="form-label fw-semibold"></label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="bx bx-check-shield"></i></span>
+                                <input asp-for="ConfirmPassword" class="form-control" type="password" placeholder="············" />
+                            </div>
                             <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="DepartmentId" class="form-label"></label>
-                            <select asp-for="DepartmentId" asp-items="Model.DepartmentOptions"
-                                    class="form-select">
-                                <option value="">-- Chọn phòng ban --</option>
+                            <label asp-for="DepartmentId" class="form-label fw-semibold"></label>
+                            <select asp-for="DepartmentId" asp-items="Model.DepartmentOptions" class="form-select">
+                                <option value="">-- Select Department --</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="RoleName" class="form-label"></label>
-                            <select asp-for="RoleName" asp-items="Model.RoleOptions"
-                                    class="form-select">
-                                <option value="">-- Chọn vai trò --</option>
+                            <label asp-for="RoleName" class="form-label fw-semibold"></label>
+                            <select asp-for="RoleName" asp-items="Model.RoleOptions" class="form-select">
+                                <option value="">-- Select Role --</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="d-flex gap-2 mt-4">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg me-1"></i>Tạo nhân viên
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary d-flex align-items-center">
+                            <i class="bx bx-check me-1"></i>Create Employee
                         </button>
-                        <a asp-action="Index" class="btn btn-outline-secondary">Hủy</a>
                     </div>
                 </form>
             </div>
@@ -62,4 +81,6 @@
     </div>
 </div>
 
-@section Scripts { @{await Html.RenderPartialAsync("_ValidationScriptsPartial");} }
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -76,7 +76,7 @@ public class EmployeeController : Controller
             return View(await BuildCreateViewModelAsync(model));
         }
 
-        TempData["SuccessMessage"] = $"Tạo nhân viên '{model.FullName}' thành công!";
+        TempData["SuccessMessage"] = $"Employee '{model.FullName}' created successfully.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -91,7 +91,6 @@ public class EmployeeController : Controller
         var user = await _employeeService.GetByIdAsync(id);
         if (user is null) return NotFound();
 
-        var roles = await _employeeService.GetAllRolesAsync();
         var currentRoles = await GetCurrentRoleAsync(user.Id);
 
         var vm = new EditEmployeeViewModel
@@ -128,7 +127,7 @@ public class EmployeeController : Controller
             return View(await BuildEditViewModelAsync(model));
         }
 
-        TempData["SuccessMessage"] = "Cập nhật nhân viên thành công!";
+        TempData["SuccessMessage"] = $"Employee '{model.FullName}' updated successfully.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -145,7 +144,7 @@ public class EmployeeController : Controller
         if (!result.Succeeded)
             TempData["ErrorMessage"] = result.FirstError;
         else
-            TempData["SuccessMessage"] = "Vô hiệu hóa tài khoản thành công.";
+            TempData["SuccessMessage"] = "Account deactivated successfully.";
 
         return RedirectToAction(nameof(Index));
     }
@@ -159,7 +158,7 @@ public class EmployeeController : Controller
         if (!result.Succeeded)
             TempData["ErrorMessage"] = result.FirstError;
         else
-            TempData["SuccessMessage"] = "Kích hoạt tài khoản thành công.";
+            TempData["SuccessMessage"] = "Account activated successfully.";
 
         return RedirectToAction(nameof(Index));
     }

@@ -1,75 +1,80 @@
 @model OpsDesk.Web.ViewModels.Ticket.CreateTicketViewModel
 @using OpsDesk.Core.Enums
 @{
-    ViewData["Title"] = "Tạo phiếu hỗ trợ mới";
+    ViewData["Title"] = "Create Ticket";
 }
 
 <div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-transparent border-0 pt-4 pb-0">
-                <a asp-action="Index" class="btn btn-link text-decoration-none p-0 mb-2">
-                    <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách
+    <div class="col-lg-9">
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header d-flex align-items-center justify-content-between pb-0">
+                <div class="card-title mb-0">
+                    <h5 class="m-0 me-2 fw-semibold d-flex align-items-center">
+                        <i class="bx bx-plus-circle text-primary me-2 fs-4"></i>Create Support Ticket
+                    </h5>
+                    <small class="text-muted">Generate a tracking code and assign an SLA commitment based on priority.</small>
+                </div>
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                    <i class="bx bx-arrow-back me-1"></i>Back to List
                 </a>
-                <h1 class="h5 fw-bold mb-1">Tạo phiếu hỗ trợ mới (Ticket)</h1>
-                <p class="text-muted small mb-0">Hệ thống sẽ tự động cấp mã định danh và tính hạn xử lý (SLA) theo mức độ ưu tiên</p>
             </div>
-            <div class="card-body">
+            <div class="card-body pt-3">
                 <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
                     <div class="mb-3">
-                        <label asp-for="CustomerId" class="form-label fw-semibold"></label>
+                        <label asp-for="CustomerId" class="form-label fw-semibold">Customer Account</label>
                         <select asp-for="CustomerId" class="form-select" asp-items="Model.CustomerOptions" autofocus></select>
                         <span asp-validation-for="CustomerId" class="text-danger small"></span>
                         <div class="form-text">
-                            Chưa có khách hàng trong danh sách? 
-                            <a asp-controller="Customer" asp-action="Create" target="_blank" class="text-decoration-none">Thêm khách hàng mới</a>
+                            Can't find the customer? 
+                            <a asp-controller="Customer" asp-action="Create" target="_blank" class="fw-semibold">Add new customer</a>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="Subject" class="form-label fw-semibold"></label>
-                        <input asp-for="Subject" class="form-control" placeholder="Ví dụ: Lỗi không xuất được hóa đơn điện tử VAT..." />
+                        <input asp-for="Subject" class="form-control" placeholder="e.g. Outage on payment gateway service..." />
                         <span asp-validation-for="Subject" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Priority" class="form-label fw-semibold"></label>
+                        <label class="form-label fw-semibold">Priority & SLA Resolution Commitment</label>
                         <div class="row g-2">
-                            <div class="col-md-3">
-                                <div class="form-check p-3 border rounded">
+                            <div class="col-md-3 col-6">
+                                <div class="form-check custom-option custom-option-basic p-3 border rounded">
                                     <input class="form-check-input" type="radio" asp-for="Priority" value="@TicketPriority.Low" id="prio_low" />
-                                    <label class="form-check-label fw-medium" for="prio_low">
-                                        <span class="badge bg-light text-secondary border d-block mb-1">Thấp</span>
-                                        <small class="text-muted">Hạn xử lý: 72h</small>
+                                    <label class="form-check-label w-100" for="prio_low">
+                                        <span class="badge bg-label-secondary d-block mb-1 text-uppercase">Low</span>
+                                        <small class="text-muted d-block">SLA: 72 hours</small>
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="form-check p-3 border rounded">
+                            <div class="col-md-3 col-6">
+                                <div class="form-check custom-option custom-option-basic p-3 border rounded">
                                     <input class="form-check-input" type="radio" asp-for="Priority" value="@TicketPriority.Medium" id="prio_med" />
-                                    <label class="form-check-label fw-medium" for="prio_med">
-                                        <span class="badge bg-info text-dark d-block mb-1">Trung bình</span>
-                                        <small class="text-muted">Hạn xử lý: 48h</small>
+                                    <label class="form-check-label w-100" for="prio_med">
+                                        <span class="badge bg-label-info d-block mb-1 text-uppercase">Medium</span>
+                                        <small class="text-muted d-block">SLA: 48 hours</small>
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="form-check p-3 border rounded">
+                            <div class="col-md-3 col-6">
+                                <div class="form-check custom-option custom-option-basic p-3 border rounded">
                                     <input class="form-check-input" type="radio" asp-for="Priority" value="@TicketPriority.High" id="prio_high" />
-                                    <label class="form-check-label fw-medium" for="prio_high">
-                                        <span class="badge bg-warning text-dark d-block mb-1">Cao</span>
-                                        <small class="text-muted">Hạn xử lý: 24h</small>
+                                    <label class="form-check-label w-100" for="prio_high">
+                                        <span class="badge bg-label-warning d-block mb-1 text-uppercase">High</span>
+                                        <small class="text-muted d-block">SLA: 24 hours</small>
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="form-check p-3 border rounded">
+                            <div class="col-md-3 col-6">
+                                <div class="form-check custom-option custom-option-basic p-3 border rounded">
                                     <input class="form-check-input" type="radio" asp-for="Priority" value="@TicketPriority.Critical" id="prio_crit" />
-                                    <label class="form-check-label fw-medium" for="prio_crit">
-                                        <span class="badge bg-danger d-block mb-1">Khẩn cấp</span>
-                                        <small class="text-muted">Hạn xử lý: 4h</small>
+                                    <label class="form-check-label w-100" for="prio_crit">
+                                        <span class="badge bg-label-danger d-block mb-1 text-uppercase">Critical</span>
+                                        <small class="text-muted d-block">SLA: 4 hours</small>
                                     </label>
                                 </div>
                             </div>
@@ -79,15 +84,15 @@
 
                     <div class="mb-3">
                         <label asp-for="Description" class="form-label fw-semibold"></label>
-                        <textarea asp-for="Description" class="form-control" rows="6" 
-                                  placeholder="Mô tả các bước tái hiện lỗi, triệu chứng, mã lỗi hiển thị hoặc yêu cầu của khách hàng..."></textarea>
+                        <textarea asp-for="Description" class="form-control" rows="5" 
+                                  placeholder="Describe the issue, reproduction steps, symptoms or client inquiry..."></textarea>
                         <span asp-validation-for="Description" class="text-danger small"></span>
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 mt-4">
-                        <a asp-action="Index" class="btn btn-outline-secondary">Hủy</a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg me-1"></i>Tạo phiếu hỗ trợ
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary d-flex align-items-center">
+                            <i class="bx bx-check me-1"></i>Create Ticket
                         </button>
                     </div>
                 </form>

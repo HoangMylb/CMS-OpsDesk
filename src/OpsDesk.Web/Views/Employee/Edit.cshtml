@@ -1,65 +1,75 @@
 @model OpsDesk.Web.ViewModels.Employee.EditEmployeeViewModel
-@{ ViewData["Title"] = "Chỉnh sửa nhân viên"; }
+@{
+    ViewData["Title"] = "Edit Employee";
+}
 
 <div class="row justify-content-center">
-    <div class="col-lg-7">
-        <div class="card">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-pencil text-primary"></i>
-                    <span>Chỉnh sửa nhân viên</span>
+    <div class="col-lg-8">
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header d-flex align-items-center justify-content-between pb-0">
+                <div class="card-title mb-0">
+                    <h5 class="m-0 me-2 fw-semibold d-flex align-items-center">
+                        <i class="bx bx-edit text-primary me-2 fs-4"></i>Edit Employee Profile
+                    </h5>
+                    <small class="text-muted">Modify organizational placement, department and role permissions.</small>
                 </div>
-                @if (Model.IsActive)
-                {
-                    <span class="badge bg-success-subtle text-success border border-success-subtle">Đang hoạt động</span>
-                }
-                else
-                {
-                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Vô hiệu hóa</span>
-                }
+                <div>
+                    @if (Model.IsActive)
+                    {
+                        <span class="badge bg-label-success">Active Account</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-label-danger">Deactivated</span>
+                    }
+                </div>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body pt-3">
                 <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
                     @Html.AntiForgeryToken()
-                    <div asp-validation-summary="All" class="alert alert-danger py-2 small"></div>
+                    <div asp-validation-summary="All" class="alert alert-danger py-2 small" style="display:@(ViewData.ModelState.IsValid ? "none" : "block")"></div>
 
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label asp-for="FullName" class="form-label"></label>
-                            <input asp-for="FullName" class="form-control" />
+                            <label asp-for="FullName" class="form-label fw-semibold"></label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="bx bx-user"></i></span>
+                                <input asp-for="FullName" class="form-control" autofocus />
+                            </div>
                             <span asp-validation-for="FullName" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="Email" class="form-label"></label>
-                            <input asp-for="Email" class="form-control" type="email" />
+                            <label asp-for="Email" class="form-label fw-semibold"></label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="bx bx-envelope"></i></span>
+                                <input asp-for="Email" class="form-control" type="email" />
+                            </div>
                             <span asp-validation-for="Email" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="DepartmentId" class="form-label"></label>
-                            <select asp-for="DepartmentId" asp-items="Model.DepartmentOptions"
-                                    class="form-select">
-                                <option value="">-- Chọn phòng ban --</option>
+                            <label asp-for="DepartmentId" class="form-label fw-semibold"></label>
+                            <select asp-for="DepartmentId" asp-items="Model.DepartmentOptions" class="form-select">
+                                <option value="">-- Select Department --</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="RoleName" class="form-label"></label>
-                            <select asp-for="RoleName" asp-items="Model.RoleOptions"
-                                    class="form-select">
-                                <option value="">-- Chọn vai trò --</option>
+                            <label asp-for="RoleName" class="form-label fw-semibold"></label>
+                            <select asp-for="RoleName" asp-items="Model.RoleOptions" class="form-select">
+                                <option value="">-- Select Role --</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="alert alert-info mt-3 py-2 small">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Để đổi mật khẩu, nhân viên có thể dùng chức năng "Đổi mật khẩu" sau khi đăng nhập.
+                    <div class="alert alert-primary mt-3 py-2 small d-flex align-items-center" role="alert">
+                        <i class="bx bx-info-circle me-2 fs-5"></i>
+                        <div>Employees can independently update their password via "Change Password" after login.</div>
                     </div>
 
-                    <div class="d-flex gap-2 mt-3">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg me-1"></i>Lưu thay đổi
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary d-flex align-items-center">
+                            <i class="bx bx-check me-1"></i>Save Changes
                         </button>
-                        <a asp-action="Index" class="btn btn-outline-secondary">Hủy</a>
                     </div>
                 </form>
             </div>
@@ -67,4 +77,6 @@
     </div>
 </div>
 
-@section Scripts { @{await Html.RenderPartialAsync("_ValidationScriptsPartial");} }
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

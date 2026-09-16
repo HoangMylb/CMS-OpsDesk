@@ -1,99 +1,148 @@
 @model OpsDesk.Core.Services.DashboardViewModelData
 @using OpsDesk.Core.Enums
 @{
-    ViewData["Title"] = "Bảng điều khiển";
+    ViewData["Title"] = "Dashboard";
     var kpi = Model.Kpi;
 }
 
-<div class="d-flex align-items-center justify-content-between mb-4">
-    <div>
-        <h1 class="h4 fw-bold mb-1">Bảng điều khiển (Dashboard)</h1>
-        <p class="text-muted small mb-0">
-            @if (Model.IsAdminOrManager)
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold py-1 mb-0">Operations Dashboard</h4>
+                <p class="text-muted mb-0">
+                    @(Model.IsAdminOrManager ? "Real-time overview of support workload, active queues, and SLA performance." : "Your personal assigned tickets and queue status.")
+                </p>
+            </div>
+            @if (User.HasClaim("Permission", "Ticket.Create"))
             {
-                <span>Tổng quan vận hành và tiến độ xử lý ticket trên toàn hệ thống</span>
+                <a asp-controller="Ticket" asp-action="Create" class="btn btn-primary d-flex align-items-center">
+                    <i class="bx bx-plus me-1"></i>New Support Ticket
+                </a>
             }
-            else
-            {
-                <span>Khối lượng công việc và các yêu cầu hỗ trợ được phân công cho bạn</span>
-            }
-        </p>
-    </div>
-    <a asp-controller="Ticket" asp-action="Create" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i>Tạo ticket mới
-    </a>
-</div>
-
-<!-- Thẻ KPI -->
-<div class="row g-3 mb-4">
-    <div class="col-md-2 col-sm-6 col-6">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-body">
-                <div class="text-muted small fw-semibold text-uppercase mb-1">Tổng số phiếu</div>
-                <div class="h3 fw-bold text-dark mb-0">@kpi.TotalTickets</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-sm-6 col-6">
-        <div class="card shadow-sm border-0 h-100 border-start border-primary border-4">
-            <div class="card-body">
-                <div class="text-muted small fw-semibold text-uppercase mb-1">Đang mở</div>
-                <div class="h3 fw-bold text-primary mb-0">@kpi.OpenTickets</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 col-sm-6 col-6">
-        <div class="card shadow-sm border-0 h-100 border-start border-warning border-4">
-            <div class="card-body">
-                <div class="text-muted small fw-semibold text-uppercase mb-1">Đang xử lý</div>
-                <div class="h3 fw-bold text-warning mb-0">@kpi.InProgressTickets</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 col-sm-6 col-6">
-        <div class="card shadow-sm border-0 h-100 border-start border-danger border-4">
-            <div class="card-body">
-                <div class="text-muted small fw-semibold text-uppercase mb-1">Quá hạn SLA</div>
-                <div class="h3 fw-bold text-danger mb-0">@kpi.OverdueTickets</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-sm-12 col-12">
-        <div class="card shadow-sm border-0 h-100 border-start border-success border-4">
-            <div class="card-body">
-                <div class="text-muted small fw-semibold text-uppercase mb-1">Xong hôm nay</div>
-                <div class="h3 fw-bold text-success mb-0">@kpi.ResolvedTodayCount</div>
-            </div>
         </div>
     </div>
 </div>
 
-<div class="row g-4 mb-4">
-    <!-- Cột trái: Phân bổ ưu tiên & Trạng thái -->
-    <div class="col-lg-6">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-transparent border-bottom py-3">
-                <h2 class="h6 fw-bold mb-0">Phân bổ theo Mức độ ưu tiên (SLA)</h2>
+<!-- KPI Cards -->
+<div class="row">
+    <!-- Total Tickets -->
+    <div class="col-lg-2 col-md-4 col-6 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body pb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="avatar flex-shrink-0 me-2">
+                        <span class="avatar-initial rounded bg-label-primary"><i class="bx bx-folder-open"></i></span>
+                    </div>
+                    <span class="fw-semibold d-block text-muted small text-uppercase">Total</span>
+                </div>
+                <h3 class="card-title mb-1 text-dark">@kpi.TotalTickets</h3>
+                <small class="text-muted">Tickets in system</small>
             </div>
-            <div class="card-body">
+        </div>
+    </div>
+
+    <!-- Open Tickets -->
+    <div class="col-lg-2 col-md-4 col-6 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body pb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="avatar flex-shrink-0 me-2">
+                        <span class="avatar-initial rounded bg-label-info"><i class="bx bx-support"></i></span>
+                    </div>
+                    <span class="fw-semibold d-block text-muted small text-uppercase">Open</span>
+                </div>
+                <h3 class="card-title mb-1 text-info">@kpi.OpenTickets</h3>
+                <small class="text-info">Unresolved queue</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- In Progress -->
+    <div class="col-lg-3 col-md-4 col-6 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body pb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="avatar flex-shrink-0 me-2">
+                        <span class="avatar-initial rounded bg-label-warning"><i class="bx bx-time-five"></i></span>
+                    </div>
+                    <span class="fw-semibold d-block text-muted small text-uppercase">In Progress</span>
+                </div>
+                <h3 class="card-title mb-1 text-warning">@kpi.InProgressTickets</h3>
+                <small class="text-muted">Under active resolution</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overdue SLA -->
+    <div class="col-lg-3 col-md-6 col-6 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body pb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="avatar flex-shrink-0 me-2">
+                        <span class="avatar-initial rounded bg-label-danger"><i class="bx bx-error-circle"></i></span>
+                    </div>
+                    <span class="fw-semibold d-block text-danger small text-uppercase">Overdue SLA</span>
+                </div>
+                <h3 class="card-title mb-1 text-danger">@kpi.OverdueTickets</h3>
+                <small class="text-danger fw-semibold">Action required immediately</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resolved Today -->
+    <div class="col-lg-2 col-md-6 col-12 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body pb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="avatar flex-shrink-0 me-2">
+                        <span class="avatar-initial rounded bg-label-success"><i class="bx bx-check-double"></i></span>
+                    </div>
+                    <span class="fw-semibold d-block text-success small text-uppercase">Resolved Today</span>
+                </div>
+                <h3 class="card-title mb-1 text-success">@kpi.ResolvedTodayCount</h3>
+                <small class="text-muted">Completed today</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Priority SLA Distribution -->
+    <div class="col-md-6 col-lg-6 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-header d-flex align-items-center justify-content-between pb-0">
+                <div class="card-title mb-0">
+                    <h5 class="m-0 me-2 fw-semibold">Distribution by Priority (SLA)</h5>
+                    <small class="text-muted">Active open queue prioritization</small>
+                </div>
+            </div>
+            <div class="card-body pt-3">
                 <div class="d-flex flex-column gap-3">
                     @foreach (var p in Model.PriorityDistribution)
                     {
-                        var badgeClass = p.Priority switch
+                        var labelClass = p.Priority switch
+                        {
+                            TicketPriority.Critical => "bg-label-danger text-danger",
+                            TicketPriority.High => "bg-label-warning text-warning",
+                            TicketPriority.Medium => "bg-label-info text-info",
+                            _ => "bg-label-secondary text-secondary"
+                        };
+                        var barClass = p.Priority switch
                         {
                             TicketPriority.Critical => "bg-danger",
-                            TicketPriority.High => "bg-warning text-dark",
-                            TicketPriority.Medium => "bg-info text-dark",
+                            TicketPriority.High => "bg-warning",
+                            TicketPriority.Medium => "bg-info",
                             _ => "bg-secondary"
                         };
                         var percentage = kpi.OpenTickets > 0 ? (int)Math.Round((double)p.Count / kpi.OpenTickets * 100) : 0;
                         <div>
-                            <div class="d-flex justify-content-between small fw-semibold mb-1">
-                                <span><span class="badge @badgeClass me-1">@p.PriorityName</span></span>
-                                <span>@p.Count phiếu (@percentage%)</span>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge @labelClass text-uppercase fw-semibold">@p.PriorityName</span>
+                                <span class="small fw-semibold">@p.Count tickets (@percentage%)</span>
                             </div>
                             <div class="progress" style="height: 6px;">
-                                <div class="progress-bar @badgeClass" role="progressbar" style="width: @percentage%"></div>
+                                <div class="progress-bar @barClass" role="progressbar" style="width: @percentage%" aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
                     }
@@ -102,33 +151,45 @@
         </div>
     </div>
 
-    <!-- Cột phải: Phân bổ trạng thái -->
-    <div class="col-lg-6">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-transparent border-bottom py-3">
-                <h2 class="h6 fw-bold mb-0">Phân bổ theo Trạng thái xử lý</h2>
+    <!-- Status Distribution -->
+    <div class="col-md-6 col-lg-6 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-header d-flex align-items-center justify-content-between pb-0">
+                <div class="card-title mb-0">
+                    <h5 class="m-0 me-2 fw-semibold">Distribution by Lifecycle Status</h5>
+                    <small class="text-muted">State machine breakdown</small>
+                </div>
             </div>
-            <div class="card-body">
+            <div class="card-body pt-3">
                 <div class="d-flex flex-column gap-3">
                     @foreach (var s in Model.StatusDistribution)
                     {
-                        var badgeClass = s.Status switch
+                        var labelClass = s.Status switch
+                        {
+                            TicketStatus.New => "bg-label-primary text-primary",
+                            TicketStatus.Assigned => "bg-label-info text-info",
+                            TicketStatus.InProgress => "bg-label-warning text-warning",
+                            TicketStatus.Resolved => "bg-label-success text-success",
+                            TicketStatus.Closed => "bg-label-secondary text-secondary",
+                            _ => "bg-label-danger text-danger"
+                        };
+                        var barClass = s.Status switch
                         {
                             TicketStatus.New => "bg-primary",
-                            TicketStatus.Assigned => "bg-info text-dark",
-                            TicketStatus.InProgress => "bg-warning text-dark",
+                            TicketStatus.Assigned => "bg-info",
+                            TicketStatus.InProgress => "bg-warning",
                             TicketStatus.Resolved => "bg-success",
                             TicketStatus.Closed => "bg-secondary",
                             _ => "bg-danger"
                         };
                         var percentage = kpi.TotalTickets > 0 ? (int)Math.Round((double)s.Count / kpi.TotalTickets * 100) : 0;
                         <div>
-                            <div class="d-flex justify-content-between small fw-semibold mb-1">
-                                <span><span class="badge @badgeClass me-1">@s.StatusName</span></span>
-                                <span>@s.Count phiếu (@percentage%)</span>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge @labelClass text-uppercase fw-semibold">@s.StatusName</span>
+                                <span class="small fw-semibold">@s.Count tickets (@percentage%)</span>
                             </div>
                             <div class="progress" style="height: 6px;">
-                                <div class="progress-bar @badgeClass" role="progressbar" style="width: @percentage%"></div>
+                                <div class="progress-bar @barClass" role="progressbar" style="width: @percentage%" aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
                     }
@@ -140,40 +201,47 @@
 
 @if (Model.IsAdminOrManager && Model.AgentWorkloads.Count > 0)
 {
-    <!-- Bảng phân bổ tải công việc giữa các Agent -->
+    <!-- Agent Workload Table -->
     <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
-            <h2 class="h6 fw-bold mb-0">Khối lượng công việc theo Nhân viên (Agent Workload)</h2>
-            <span class="badge bg-secondary-subtle text-secondary">@Model.AgentWorkloads.Count nhân viên đang hoạt động</span>
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h5 class="card-title mb-0 fw-semibold">Agent Workload & Capacity</h5>
+            <span class="badge bg-label-primary">@Model.AgentWorkloads.Count Active Staff</span>
         </div>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 small">
-                <thead class="table-light">
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover">
+                <thead>
                     <tr>
-                        <th>Nhân viên</th>
-                        <th class="text-center">Tổng được giao</th>
-                        <th class="text-center">Đang tích cực xử lý</th>
-                        <th class="text-center">Quá hạn SLA</th>
-                        <th class="text-end">Hành động</th>
+                        <th>Agent Name</th>
+                        <th class="text-center">Assigned</th>
+                        <th class="text-center">In Progress</th>
+                        <th class="text-center">Overdue</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="table-border-bottom-0">
                     @foreach (var a in Model.AgentWorkloads)
                     {
                         <tr>
                             <td>
-                                <span class="fw-semibold">@a.AgentName</span>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm me-2">
+                                        <span class="avatar-initial rounded-circle bg-label-primary">
+                                            @(a.AgentName.Length > 0 ? a.AgentName[0].ToString().ToUpper() : "A")
+                                        </span>
+                                    </div>
+                                    <span class="fw-semibold">@a.AgentName</span>
+                                </div>
                             </td>
                             <td class="text-center">
-                                <span class="badge bg-light text-dark border">@a.AssignedCount</span>
+                                <span class="badge bg-label-secondary">@a.AssignedCount</span>
                             </td>
                             <td class="text-center">
-                                <span class="badge bg-warning text-dark">@a.InProgressCount</span>
+                                <span class="badge bg-label-warning">@a.InProgressCount</span>
                             </td>
                             <td class="text-center">
                                 @if (a.OverdueCount > 0)
                                 {
-                                    <span class="badge bg-danger">@a.OverdueCount</span>
+                                    <span class="badge bg-label-danger fw-bold">@a.OverdueCount</span>
                                 }
                                 else
                                 {
@@ -181,8 +249,8 @@
                                 }
                             </td>
                             <td class="text-end">
-                                <a asp-controller="Ticket" asp-action="Index" asp-route-assignedToUserId="@a.AgentId" class="btn btn-outline-primary btn-sm">
-                                    Xem tickets
+                                <a asp-controller="Ticket" asp-action="Index" asp-route-assignedToUserId="@a.AgentId" class="btn btn-sm btn-outline-primary">
+                                    <i class="bx bx-show me-1"></i>View Queue
                                 </a>
                             </td>
                         </tr>
@@ -193,50 +261,57 @@
     </div>
 }
 
-<!-- Top Ticket Quá hạn SLA cần ưu tiên -->
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
-        <h2 class="h6 fw-bold text-danger mb-0">
-            <i class="bi bi-exclamation-octagon-fill me-1"></i>Ticket quá hạn SLA cần chú ý xử lý gấp
-        </h2>
-        <a asp-controller="Ticket" asp-action="Index" asp-route-overdueOnly="true" class="btn btn-outline-danger btn-sm">
-            Xem tất cả quá hạn
+<!-- Urgent Overdue Tickets -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+            <h5 class="card-title mb-0 text-danger fw-semibold d-flex align-items-center">
+                <i class="bx bx-alarm-exclamation me-2 fs-4"></i>Urgent Overdue Tickets
+            </h5>
+            <small class="text-muted">Tickets that breached initial resolution commitments</small>
+        </div>
+        <a asp-controller="Ticket" asp-action="Index" asp-route-overdueOnly="true" class="btn btn-sm btn-outline-danger">
+            View All Overdue
         </a>
     </div>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0 small">
-            <thead class="table-light">
+    <div class="table-responsive text-nowrap">
+        <table class="table table-hover">
+            <thead>
                 <tr>
-                    <th>Mã ticket</th>
-                    <th>Tiêu đề</th>
-                    <th>Khách hàng</th>
-                    <th>Ưu tiên</th>
-                    <th>Người phụ trách</th>
-                    <th>Hạn cam kết</th>
+                    <th>Ticket Code</th>
+                    <th>Subject</th>
+                    <th>Customer</th>
+                    <th>Priority</th>
+                    <th>Assignee</th>
+                    <th>SLA Due Date</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="table-border-bottom-0">
                 @if (Model.TopOverdueTickets.Count == 0)
                 {
                     <tr>
                         <td colspan="6" class="text-center py-4 text-success">
-                            <i class="bi bi-check-circle-fill me-1"></i>Tuyệt vời! Không có ticket nào đang bị quá hạn SLA.
+                            <i class="bx bx-check-circle me-1 fs-5 align-middle"></i>All tickets are currently within SLA commitments!
                         </td>
                     </tr>
                 }
                 @foreach (var t in Model.TopOverdueTickets)
                 {
-                    <tr class="table-danger-subtle">
+                    <tr class="table-danger">
                         <td>
-                            <a asp-controller="Ticket" asp-action="Detail" asp-route-id="@t.Id" class="fw-bold font-monospace text-decoration-none">
+                            <a asp-controller="Ticket" asp-action="Detail" asp-route-id="@t.Id" class="fw-bold font-monospace text-danger">
                                 @t.TicketCode
                             </a>
                         </td>
-                        <td>@t.Subject</td>
+                        <td>
+                            <span class="text-truncate d-inline-block" style="max-width: 250px;" title="@t.Subject">
+                                @t.Subject
+                            </span>
+                        </td>
                         <td>@t.CustomerName</td>
-                        <td><span class="badge bg-danger">@t.Priority</span></td>
-                        <td>@(t.AssignedToName ?? "Chưa phân công")</td>
-                        <td class="text-danger fw-bold">@t.DueAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td><span class="badge bg-danger text-uppercase">@t.Priority</span></td>
+                        <td>@(t.AssignedToName ?? "Unassigned")</td>
+                        <td class="text-danger fw-bold">@t.DueAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
                     </tr>
                 }
             </tbody>

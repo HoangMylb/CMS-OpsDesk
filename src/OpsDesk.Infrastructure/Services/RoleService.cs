@@ -57,7 +57,7 @@ public class RoleService : IRoleService
     public async Task<ServiceResult> CreateAsync(string roleName)
     {
         if (await _roleManager.RoleExistsAsync(roleName))
-            return ServiceResult.Failure($"Vai trò '{roleName}' đã tồn tại.");
+            return ServiceResult.Failure($"Role '{roleName}' already exists.");
 
         var result = await _roleManager.CreateAsync(new IdentityRole(roleName));
         if (!result.Succeeded)
@@ -74,9 +74,9 @@ public class RoleService : IRoleService
     public async Task<ServiceResult> UpdatePermissionsAsync(string roleId, IEnumerable<string> permissions)
     {
         var role = await _roleManager.FindByIdAsync(roleId);
-        if (role is null) return ServiceResult.Failure("Không tìm thấy vai trò.");
+        if (role is null) return ServiceResult.Failure("Role not found.");
 
-        // Xóa toàn bộ permission claims cũ, rồi gán lại
+        // Clear all existing permission claims then re-assign
         var existing = await _roleManager.GetClaimsAsync(role);
         foreach (var claim in existing.Where(c => c.Type == "Permission"))
             await _roleManager.RemoveClaimAsync(role, claim);
@@ -96,7 +96,7 @@ public class RoleService : IRoleService
     public async Task<ServiceResult> DeleteAsync(string roleId)
     {
         var role = await _roleManager.FindByIdAsync(roleId);
-        if (role is null) return ServiceResult.Failure("Không tìm thấy vai trò.");
+        if (role is null) return ServiceResult.Failure("Role not found.");
 
         var result = await _roleManager.DeleteAsync(role);
         if (!result.Succeeded)

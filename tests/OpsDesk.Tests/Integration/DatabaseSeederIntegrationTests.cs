@@ -17,15 +17,20 @@ public class DatabaseSeederIntegrationTests
         // Arrange
         var inMemorySettings = new Dictionary<string, string?>
         {
-            ["AdminUsers:0:UserName"] = "IncomSaiGon",
-            ["AdminUsers:0:Email"] = "admin@incom.vn",
+            ["AdminUsers:0:UserName"] = "HoangMy",
+            ["AdminUsers:0:Email"] = "admin@hoangmy.vn",
             ["AdminUsers:0:Password"] = "Incom@2026",
             ["AdminUsers:0:Roles:0"] = "ADMIN",
             ["AdminUsers:0:Roles:1"] = "SUPER_ADMIN",
+            ["AdminUsers:0:Roles:2"] = "MANAGER",
+            ["AdminUsers:0:Roles:3"] = "SUPPORT_AGENT",
             ["AdminUsers:1:UserName"] = "MiniAppCore",
             ["AdminUsers:1:Email"] = "admin@MiniAppCore.vn",
             ["AdminUsers:1:Password"] = "Incom@2026",
             ["AdminUsers:1:Roles:0"] = "ADMIN",
+            ["AdminUsers:1:Roles:1"] = "SUPER_ADMIN",
+            ["AdminUsers:1:Roles:2"] = "MANAGER",
+            ["AdminUsers:1:Roles:3"] = "SUPPORT_AGENT",
         };
 
         var configuration = new ConfigurationBuilder()
@@ -65,18 +70,23 @@ public class DatabaseSeederIntegrationTests
         // Assert - Roles created
         Assert.True(await roleManager.RoleExistsAsync("ADMIN"));
         Assert.True(await roleManager.RoleExistsAsync("SUPER_ADMIN"));
+        Assert.True(await roleManager.RoleExistsAsync("MANAGER"));
+        Assert.True(await roleManager.RoleExistsAsync("SUPPORT_AGENT"));
 
-        // Assert - Users created
-        var incomUser = await userManager.FindByEmailAsync("admin@incom.vn");
-        Assert.NotNull(incomUser);
-        Assert.Equal("IncomSaiGon", incomUser.UserName);
-        Assert.True(incomUser.IsActive);
-        Assert.True(incomUser.EmailConfirmed);
+        // Assert - HoangMy user created
+        var hoangMyUser = await userManager.FindByEmailAsync("admin@hoangmy.vn");
+        Assert.NotNull(hoangMyUser);
+        Assert.Equal("HoangMy", hoangMyUser.UserName);
+        Assert.True(hoangMyUser.IsActive);
+        Assert.True(hoangMyUser.EmailConfirmed);
 
-        var incomRoles = await userManager.GetRolesAsync(incomUser);
-        Assert.Contains(incomRoles, r => r.Equals("ADMIN", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(incomRoles, r => r.Equals("SUPER_ADMIN", StringComparison.OrdinalIgnoreCase));
+        var hoangMyRoles = await userManager.GetRolesAsync(hoangMyUser);
+        Assert.Contains(hoangMyRoles, r => r.Equals("ADMIN", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(hoangMyRoles, r => r.Equals("SUPER_ADMIN", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(hoangMyRoles, r => r.Equals("MANAGER", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(hoangMyRoles, r => r.Equals("SUPPORT_AGENT", StringComparison.OrdinalIgnoreCase));
 
+        // Assert - MiniAppCore user created
         var miniAppUser = await userManager.FindByEmailAsync("admin@MiniAppCore.vn");
         Assert.NotNull(miniAppUser);
         Assert.Equal("MiniAppCore", miniAppUser.UserName);
@@ -84,5 +94,8 @@ public class DatabaseSeederIntegrationTests
 
         var miniAppRoles = await userManager.GetRolesAsync(miniAppUser);
         Assert.Contains(miniAppRoles, r => r.Equals("ADMIN", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(miniAppRoles, r => r.Equals("SUPER_ADMIN", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(miniAppRoles, r => r.Equals("MANAGER", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(miniAppRoles, r => r.Equals("SUPPORT_AGENT", StringComparison.OrdinalIgnoreCase));
     }
 }

@@ -1,32 +1,35 @@
 @model OpsDesk.Web.ViewModels.AuditLog.AuditLogListViewModel
 @{
-    ViewData["Title"] = "Nhật ký kiểm toán (Audit Log)";
+    ViewData["Title"] = "Audit Log";
 }
 
-<div class="d-flex align-items-center justify-content-between mb-4">
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
     <div>
-        <h1 class="h4 fw-bold mb-1">Nhật ký kiểm toán (Audit Log)</h1>
-        <p class="text-muted small mb-0">Hệ thống ghi nhận bất biến mọi hành động quan trọng trên hệ thống</p>
+        <h4 class="fw-bold py-1 mb-0">System Audit Trail</h4>
+        <p class="text-muted mb-0">Immutable compliance log recording system mutations, data changes, and user activities.</p>
     </div>
-    <span class="badge bg-secondary-subtle text-secondary py-2 px-3">
-        <i class="bi bi-shield-lock-fill me-1"></i>Chế độ chỉ đọc (Read-only)
+    <span class="badge bg-label-secondary d-flex align-items-center py-2 px-3">
+        <i class="bx bx-lock-alt me-1 fs-5"></i>Append-only Immutable Log
     </span>
 </div>
 
-<!-- Bộ lọc tìm kiếm -->
-<div class="card shadow-sm border-0 mb-4">
+<!-- Search & Filter Card -->
+<div class="card mb-4 shadow-sm border-0">
     <div class="card-body">
-        <form asp-action="Index" method="get" class="row g-2 align-items-end">
+        <form asp-action="Index" method="get" class="row g-3 align-items-end">
             <div class="col-md-3">
-                <label class="form-label small fw-semibold text-muted">Hành động (Action)</label>
-                <input type="text" name="action" value="@Model.Action" class="form-control form-control-sm" 
-                       placeholder="TicketCreated, RoleUpdated..." />
+                <label class="form-label small fw-semibold">Action Pattern</label>
+                <div class="input-group input-group-merge">
+                    <span class="input-group-text"><i class="bx bx-tag"></i></span>
+                    <input type="text" name="action" value="@Model.Action" class="form-control" 
+                           placeholder="TicketCreated, RoleUpdated..." />
+                </div>
             </div>
 
             <div class="col-md-3">
-                <label class="form-label small fw-semibold text-muted">Loại đối tượng (Entity)</label>
-                <select name="entityName" class="form-select form-select-sm">
-                    <option value="">-- Tất cả đối tượng --</option>
+                <label class="form-label small fw-semibold">Entity Domain</label>
+                <select name="entityName" class="form-select">
+                    <option value="">-- All Entities --</option>
                     <option value="Ticket" selected="@(Model.EntityName == "Ticket")">Ticket</option>
                     <option value="TicketMessage" selected="@(Model.EntityName == "TicketMessage")">TicketMessage</option>
                     <option value="Customer" selected="@(Model.EntityName == "Customer")">Customer</option>
@@ -36,88 +39,86 @@
             </div>
 
             <div class="col-md-2">
-                <label class="form-label small fw-semibold text-muted">Từ ngày</label>
-                <input type="date" name="fromDate" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" />
+                <label class="form-label small fw-semibold">From Date</label>
+                <input type="date" name="fromDate" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" class="form-control" />
             </div>
 
             <div class="col-md-2">
-                <label class="form-label small fw-semibold text-muted">Đến ngày</label>
-                <input type="date" name="toDate" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" />
+                <label class="form-label small fw-semibold">To Date</label>
+                <input type="date" name="toDate" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" class="form-control" />
             </div>
 
-            <div class="col-md-2 d-flex gap-1">
-                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
-                    <i class="bi bi-filter me-1"></i>Lọc
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1 d-flex align-items-center justify-content-center">
+                    <i class="bx bx-filter-alt me-1"></i>Filter
                 </button>
-                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="Đặt lại">
-                    <i class="bi bi-arrow-counterclockwise"></i>
+                <a asp-action="Index" class="btn btn-outline-secondary d-flex align-items-center justify-content-center" title="Reset">
+                    <i class="bx bx-reset"></i>
                 </a>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Bảng Audit Log -->
+<!-- Audit Log Table Card -->
 <div class="card shadow-sm border-0">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0 small">
-            <thead class="table-light">
+    <div class="table-responsive text-nowrap">
+        <table class="table table-hover">
+            <thead>
                 <tr>
-                    <th style="width: 170px;">Thời gian</th>
-                    <th style="width: 160px;">Người thực hiện</th>
-                    <th style="width: 180px;">Hành động</th>
-                    <th style="width: 150px;">Đối tượng</th>
-                    <th>Chi tiết thay đổi</th>
+                    <th style="width: 170px;">Timestamp</th>
+                    <th style="width: 170px;">Actor & IP</th>
+                    <th style="width: 180px;">Action</th>
+                    <th style="width: 160px;">Target Entity</th>
+                    <th class="text-end">Payload Details</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="table-border-bottom-0">
                 @if (Model.Items.Count == 0)
                 {
                     <tr>
                         <td colspan="5" class="text-center py-5 text-muted">
-                            <i class="bi bi-journal-x display-6 d-block mb-2 text-secondary"></i>
-                            Không có bản ghi nhật ký kiểm toán nào.
+                            <i class="bx bx-history display-4 d-block mb-2 text-secondary"></i>
+                            No audit log records match the search parameters.
                         </td>
                     </tr>
                 }
                 @foreach (var log in Model.Items)
                 {
+                    var hasData = !string.IsNullOrEmpty(log.NewValues) || !string.IsNullOrEmpty(log.OldValues);
                     <tr>
-                        <td class="text-muted font-monospace">
-                            @log.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                        <td>
+                            <div class="font-monospace small text-muted">
+                                @log.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                            </div>
                         </td>
                         <td>
-                            <div class="fw-semibold">@log.UserName</div>
+                            <div class="fw-semibold text-dark">@log.UserName</div>
                             @if (!string.IsNullOrEmpty(log.IPAddress))
                             {
-                                <small class="text-muted font-monospace">@log.IPAddress</small>
+                                <small class="text-muted font-monospace d-flex align-items-center">
+                                    <i class="bx bx-globe me-1"></i>@log.IPAddress
+                                </small>
                             }
                         </td>
                         <td>
-                            <span class="badge bg-light text-dark border font-monospace">@log.Action</span>
+                            <span class="badge bg-label-primary font-monospace">@log.Action</span>
                         </td>
                         <td>
-                            <span class="fw-medium">@log.EntityName</span>
-                            <span class="text-muted font-monospace">#@log.EntityId</span>
+                            <span class="fw-semibold text-dark">@log.EntityName</span>
+                            <small class="text-muted font-monospace d-block">ID: #@log.EntityId</small>
                         </td>
-                        <td>
-                            @if (!string.IsNullOrEmpty(log.NewValues))
+                        <td class="text-end">
+                            @if (hasData)
                             {
-                                <details>
-                                    <summary class="text-primary cursor-pointer">Xem dữ liệu JSON</summary>
-                                    <pre class="bg-light p-2 rounded mt-1 mb-0 border" style="font-size: 11px; max-height: 150px; overflow-y: auto;">@log.NewValues</pre>
-                                </details>
-                            }
-                            else if (!string.IsNullOrEmpty(log.OldValues))
-                            {
-                                <details>
-                                    <summary class="text-secondary cursor-pointer">Xem giá trị cũ</summary>
-                                    <pre class="bg-light p-2 rounded mt-1 mb-0 border" style="font-size: 11px; max-height: 150px; overflow-y: auto;">@log.OldValues</pre>
-                                </details>
+                                <button type="button" class="btn btn-xs btn-outline-primary d-inline-flex align-items-center"
+                                        onclick='showAuditModal("@log.Action", "@log.EntityName", "@log.EntityId", @Html.Raw(System.Text.Json.JsonSerializer.Serialize(log.OldValues ?? "")), @Html.Raw(System.Text.Json.JsonSerializer.Serialize(log.NewValues ?? "")))'>
+                                    <i class="bx bx-code-alt me-1"></i>View JSON
+                                </button>
                             }
                             else
                             {
-                                <span class="text-muted">—</span>
+                                <span class="text-muted small">—</span>
                             }
                         </td>
                     </tr>
@@ -128,9 +129,9 @@
 
     @if (Model.TotalPages > 1)
     {
-        <div class="card-footer bg-transparent border-top py-3 d-flex justify-content-between align-items-center">
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div class="text-muted small">
-                Hiển thị trang @Model.Page / @Model.TotalPages (Tổng cộng @Model.TotalCount bản ghi)
+                Showing page @Model.Page of @Model.TotalPages (Total @Model.TotalCount log entries)
             </div>
             <nav>
                 <ul class="pagination pagination-sm mb-0">
@@ -140,13 +141,15 @@
                            asp-route-action="@Model.Action"
                            asp-route-entityName="@Model.EntityName"
                            asp-route-fromDate="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
-                           asp-route-toDate="@(Model.ToDate?.ToString("yyyy-MM-dd"))">Trước</a>
+                           asp-route-toDate="@(Model.ToDate?.ToString("yyyy-MM-dd"))">
+                            <i class="bx bx-chevron-left"></i>
+                        </a>
                     </li>
                     @for (int p = 1; p <= Model.TotalPages; p++)
                     {
                         <li class="page-item @(p == Model.Page ? "active" : "")">
                             <a class="page-link" asp-action="Index" 
-                               asp-route-page="@p"
+                               asp-route-page="@p" 
                                asp-route-action="@Model.Action"
                                asp-route-entityName="@Model.EntityName"
                                asp-route-fromDate="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
@@ -155,14 +158,88 @@
                     }
                     <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
                         <a class="page-link" asp-action="Index" 
-                           asp-route-page="@(Model.Page + 1)"
+                           asp-route-page="@(Model.Page + 1)" 
                            asp-route-action="@Model.Action"
                            asp-route-entityName="@Model.EntityName"
                            asp-route-fromDate="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
-                           asp-route-toDate="@(Model.ToDate?.ToString("yyyy-MM-dd"))">Sau</a>
+                           asp-route-toDate="@(Model.ToDate?.ToString("yyyy-MM-dd"))">
+                            <i class="bx bx-chevron-right"></i>
+                        </a>
                     </li>
                 </ul>
             </nav>
         </div>
     }
 </div>
+
+<!-- Modal: Audit JSON Detail -->
+<div class="modal fade" id="auditDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow">
+            <div class="modal-header border-bottom">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-label-primary p-2 rounded me-2">
+                        <i class="bx bx-code-block fs-5"></i>
+                    </span>
+                    <div>
+                        <h5 class="modal-title fw-bold" id="auditModalTitle">Mutation Payload</h5>
+                        <small class="text-muted" id="auditModalSubtitle"></small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="auditModalBody">
+                <!-- Injected via JavaScript -->
+            </div>
+            <div class="modal-footer border-top py-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showAuditModal(action, entity, id, oldVal, newVal) {
+            document.getElementById('auditModalTitle').textContent = `Action: ${action}`;
+            document.getElementById('auditModalSubtitle').textContent = `Target: ${entity} (ID: #${id})`;
+
+            function formatJson(str) {
+                if (!str) return '';
+                try {
+                    return JSON.stringify(JSON.parse(str), null, 2);
+                } catch {
+                    return str;
+                }
+            }
+
+            let html = '';
+            if (oldVal) {
+                html += `
+                    <div class="mb-3">
+                        <h6 class="fw-bold text-muted small text-uppercase">Previous Values:</h6>
+                        <pre class="bg-lighter p-3 rounded border border-light font-monospace small" style="max-height: 250px; overflow-y: auto;">${escapeHtml(formatJson(oldVal))}</pre>
+                    </div>
+                `;
+            }
+            if (newVal) {
+                html += `
+                    <div class="mb-0">
+                        <h6 class="fw-bold text-primary small text-uppercase">Updated / Current Values:</h6>
+                        <pre class="bg-lighter p-3 rounded border border-light font-monospace small" style="max-height: 250px; overflow-y: auto;">${escapeHtml(formatJson(newVal))}</pre>
+                    </div>
+                `;
+            }
+
+            document.getElementById('auditModalBody').innerHTML = html || '<p class="text-muted text-center mb-0">No payload available.</p>';
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('auditDetailModal'));
+            modal.show();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+}

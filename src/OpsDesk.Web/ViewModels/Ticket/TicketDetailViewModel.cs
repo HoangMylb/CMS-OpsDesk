@@ -39,7 +39,7 @@ public class AddTicketMessageViewModel
 {
     public int TicketId { get; set; }
 
-    [Required(ErrorMessage = "Nội dung phản hồi hoặc ghi chú không được để trống")]
+    [Required(ErrorMessage = "Message content or note cannot be empty.")]
     public string Content { get; set; } = string.Empty;
 
     public bool IsInternal { get; set; } = false;

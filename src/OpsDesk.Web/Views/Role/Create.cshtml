@@ -1,29 +1,40 @@
 @model OpsDesk.Web.ViewModels.Role.CreateRoleViewModel
 @{
-    ViewData["Title"] = "Thêm vai trò mới";
+    ViewData["Title"] = "Add Role";
 }
 
 <div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-transparent border-0 pt-4 pb-0">
-                <h2 class="h5 fw-bold mb-1">Tạo vai trò mới</h2>
-                <p class="text-muted small mb-0">Sau khi tạo, bạn có thể phân quyền chi tiết cho vai trò này</p>
+    <div class="col-md-7 col-lg-6">
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header d-flex align-items-center justify-content-between pb-0">
+                <div class="card-title mb-0">
+                    <h5 class="m-0 me-2 fw-semibold d-flex align-items-center">
+                        <i class="bx bx-shield-plus text-primary me-2 fs-4"></i>Create New Role
+                    </h5>
+                    <small class="text-muted">Define a new authorization role and configure its permission set.</small>
+                </div>
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                    <i class="bx bx-arrow-back me-1"></i>Back to List
+                </a>
             </div>
-            <div class="card-body">
+            <div class="card-body pt-3">
                 <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
                     <div class="mb-3">
                         <label asp-for="Name" class="form-label fw-semibold"></label>
-                        <input asp-for="Name" class="form-control" placeholder="Ví dụ: QualityAssurance, BillingSpecialist..." autofocus />
+                        <div class="input-group input-group-merge">
+                            <span class="input-group-text"><i class="bx bx-shield-quarter"></i></span>
+                            <input asp-for="Name" class="form-control" placeholder="e.g. QualityAssurance, BillingSpecialist..." autofocus />
+                        </div>
                         <span asp-validation-for="Name" class="text-danger small"></span>
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 mt-4">
-                        <a asp-action="Index" class="btn btn-outline-secondary">Hủy</a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg me-1"></i>Tạo vai trò
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary d-flex align-items-center">
+                            <i class="bx bx-check me-1"></i>Create Role
                         </button>
                     </div>
                 </form>

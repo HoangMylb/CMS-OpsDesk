@@ -5,42 +5,52 @@
 
 <div class="row justify-content-center py-5">
     <div class="col-md-7 text-center">
-        <div class="mb-4">
-            @if (Model.StatusCode == 404)
-            {
-                <i class="bi bi-compass display-1 text-muted"></i>
-            }
-            else if (Model.StatusCode == 403)
-            {
-                <i class="bi bi-shield-x display-1 text-danger"></i>
-            }
-            else
-            {
-                <i class="bi bi-exclamation-triangle display-1 text-warning"></i>
-            }
-        </div>
+        <div class="card p-4 shadow-sm border-0">
+            <div class="card-body">
+                <div class="mb-4">
+                    @if (Model.StatusCode == 404)
+                    {
+                        <div class="avatar avatar-xl bg-label-secondary mx-auto" style="width: 80px; height: 80px;">
+                            <i class="bx bx-compass fs-1 d-flex align-items-center justify-content-center h-100"></i>
+                        </div>
+                    }
+                    else if (Model.StatusCode == 403)
+                    {
+                        <div class="avatar avatar-xl bg-label-danger mx-auto" style="width: 80px; height: 80px;">
+                            <i class="bx bx-shield-x fs-1 d-flex align-items-center justify-content-center h-100"></i>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="avatar avatar-xl bg-label-warning mx-auto" style="width: 80px; height: 80px;">
+                            <i class="bx bx-error fs-1 d-flex align-items-center justify-content-center h-100"></i>
+                        </div>
+                    }
+                </div>
 
-        <h1 class="h3 fw-bold mb-2">@(Model.ErrorTitle ?? "An unexpected error occurred")</h1>
-        <p class="text-muted mb-4 lead fs-6">
-            @(Model.ErrorDescription ?? "Something went wrong on our end. Please try again later or contact your system administrator.")
-        </p>
+                <h3 class="fw-bold mb-2">@(Model.ErrorTitle ?? "An unexpected error occurred")</h3>
+                <p class="text-muted mb-4">
+                    @(Model.ErrorDescription ?? "Something went wrong on our end. Please try again later or contact your system administrator.")
+                </p>
 
-        @if (Model.ShowRequestId)
-        {
-            <div class="mb-4">
-                <span class="badge bg-light text-secondary border font-monospace py-2 px-3">
-                    Correlation ID: @Model.RequestId
-                </span>
+                @if (Model.ShowRequestId)
+                {
+                    <div class="mb-4">
+                        <span class="badge bg-label-secondary font-monospace py-2 px-3">
+                            Correlation ID: @Model.RequestId
+                        </span>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-center gap-2">
+                    <a asp-controller="Dashboard" asp-action="Index" class="btn btn-primary">
+                        <i class="bx bx-home-circle me-1"></i>Return to Dashboard
+                    </a>
+                    <button type="button" onclick="history.back()" class="btn btn-outline-secondary">
+                        <i class="bx bx-arrow-back me-1"></i>Go Back
+                    </button>
+                </div>
             </div>
-        }
-
-        <div class="d-flex justify-content-center gap-2">
-            <a asp-controller="Dashboard" asp-action="Index" class="btn btn-primary btn-sm">
-                <i class="bi bi-house-door me-1"></i>Return to Dashboard
-            </a>
-            <button type="button" onclick="history.back()" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left me-1"></i>Go Back
-            </button>
         </div>
     </div>
 </div>

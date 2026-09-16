@@ -44,7 +44,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Cấp JWT Token có chứa Role claims và Permission claims cho API Client / Mobile app.
+    /// Issues a JWT token containing Role and Permission claims for API clients / mobile applications.
     /// </summary>
     [HttpPost("token")]
     [AllowAnonymous]
@@ -53,32 +53,32 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
         {
-            return BadRequest(new { message = "Email và mật khẩu không được để trống." });
+            return BadRequest(new { message = "Email/Username and password cannot be empty." });
         }
 
         var user = await _userManager.FindByEmailAsync(request.Email.Trim()) ?? await _userManager.FindByNameAsync(request.Email.Trim());
         if (user is null)
         {
-            return Unauthorized(new { message = "Email hoặc mật khẩu không chính xác." });
+            return Unauthorized(new { message = "Invalid email/username or password." });
         }
 
         if (!user.IsActive)
         {
-            return Unauthorized(new { message = "Tài khoản của bạn đã bị vô hiệu hóa." });
+            return Unauthorized(new { message = "Your account has been deactivated." });
         }
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
         if (!result.Succeeded)
         {
             if (result.IsLockedOut)
-                return Unauthorized(new { message = "Tài khoản đã bị tạm khóa do nhập sai mật khẩu nhiều lần." });
+                return Unauthorized(new { message = "Account locked temporarily due to too many failed attempts." });
 
-            return Unauthorized(new { message = "Email hoặc mật khẩu không chính xác." });
+            return Unauthorized(new { message = "Invalid email/username or password." });
         }
 
         var roles = await _userManager.GetRolesAsync(user);
 
-        // Lấy tất cả permission claims từ các roles của user
+        // Fetch all permission claims from user's roles
         var permissionClaims = new List<Claim>();
         foreach (var roleName in roles)
         {

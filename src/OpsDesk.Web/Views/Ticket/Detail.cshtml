@@ -5,436 +5,420 @@
     var t = Model.Ticket;
 }
 
-<div class="mb-4">
-    <a asp-action="Index" class="btn btn-link text-decoration-none p-0 mb-2">
-        <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách tickets
-    </a>
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <div>
-            <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="font-monospace fs-5 fw-bold text-primary">@t.TicketCode</span>
-                @switch (t.Status)
-                {
-                    case TicketStatus.New:
-                        <span class="badge bg-primary fs-6">Mới</span>
-                        break;
-                    case TicketStatus.Assigned:
-                        <span class="badge bg-info text-dark fs-6">Đã phân công</span>
-                        break;
-                    case TicketStatus.InProgress:
-                        <span class="badge bg-warning text-dark fs-6">Đang xử lý</span>
-                        break;
-                    case TicketStatus.Resolved:
-                        <span class="badge bg-success fs-6">Đã giải quyết</span>
-                        break;
-                    case TicketStatus.Closed:
-                        <span class="badge bg-secondary fs-6">Đã đóng</span>
-                        break;
-                    case TicketStatus.Reopened:
-                        <span class="badge bg-danger fs-6">Mở lại</span>
-                        break;
-                }
-                @switch (t.Priority)
-                {
-                    case TicketPriority.Critical:
-                        <span class="badge bg-danger">Khẩn cấp (4h SLA)</span>
-                        break;
-                    case TicketPriority.High:
-                        <span class="badge bg-warning text-dark">Cao (24h SLA)</span>
-                        break;
-                    case TicketPriority.Medium:
-                        <span class="badge bg-info text-dark">Trung bình (48h SLA)</span>
-                        break;
-                    default:
-                        <span class="badge bg-light text-secondary border">Thấp (72h SLA)</span>
-                        break;
-                }
-                @if (t.IsOverdue)
-                {
-                    <span class="badge bg-danger">
-                        <i class="bi bi-exclamation-triangle-fill me-1"></i>QUÁ HẠN SLA
-                    </span>
-                }
-            </div>
-            <h1 class="h4 fw-bold mb-0">@t.Subject</h1>
-        </div>
-
-        <!-- Action buttons: Edit & Workflow Transitions -->
-        <div class="d-flex flex-wrap gap-2">
-            @if (Model.CanUpdate)
-            {
-                <a asp-action="Edit" asp-route-id="@t.Id" class="btn btn-outline-primary btn-sm fw-semibold">
-                    <i class="bi bi-pencil me-1"></i>Chỉnh sửa
-                </a>
-            }
-            @if (Model.AllowedTransitions.Contains(TicketStatus.InProgress) && Model.CanUpdate)
-            {
-                <form asp-action="TransitionStatus" method="post" class="d-inline">
-                    <input type="hidden" name="TicketId" value="@t.Id" />
-                    <input type="hidden" name="TargetStatus" value="@TicketStatus.InProgress" />
-                    <button type="submit" class="btn btn-warning btn-sm fw-semibold">
-                        <i class="bi bi-play-fill me-1"></i>Bắt đầu xử lý
-                    </button>
-                </form>
-            }
-            @if (Model.AllowedTransitions.Contains(TicketStatus.Resolved) && Model.CanResolve)
-            {
-                <button type="button" class="btn btn-success btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalResolve">
-                    <i class="bi bi-check-circle me-1"></i>Đánh dấu giải quyết
-                </button>
-            }
-            @if (Model.AllowedTransitions.Contains(TicketStatus.Closed) && Model.CanClose)
-            {
-                <form asp-action="TransitionStatus" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn đóng ticket này?');">
-                    <input type="hidden" name="TicketId" value="@t.Id" />
-                    <input type="hidden" name="TargetStatus" value="@TicketStatus.Closed" />
-                    <button type="submit" class="btn btn-secondary btn-sm fw-semibold">
-                        <i class="bi bi-lock me-1"></i>Đóng ticket
-                    </button>
-                </form>
-            }
-            @if (Model.AllowedTransitions.Contains(TicketStatus.Reopened) && Model.CanReopen)
-            {
-                <button type="button" class="btn btn-danger btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalReopen">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i>Mở lại ticket
-                </button>
-            }
-        </div>
-    </div>
-</div>
-
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle me-1"></i>@TempData["SuccessMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle me-1"></i>@TempData["ErrorMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-
-<div class="row g-4">
-    <!-- Cột trái: Nội dung chính, Tin nhắn phản hồi & Lịch sử -->
-    <div class="col-lg-8">
-        <!-- Chi tiết mô tả ban đầu -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-transparent border-bottom py-3">
-                <h2 class="h6 fw-bold mb-0">Nội dung yêu cầu từ khách hàng</h2>
-            </div>
-            <div class="card-body">
-                <div class="p-3 bg-light rounded" style="white-space: pre-wrap;">@t.Description</div>
-            </div>
-        </div>
-
-        <!-- Trao đổi tin nhắn & Ghi chú nội bộ -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
-                <h2 class="h6 fw-bold mb-0">
-                    <i class="bi bi-chat-dots me-1"></i>Trao đổi & Ghi chú nội bộ
-                </h2>
-                <span class="badge bg-secondary-subtle text-secondary">@Model.Messages.Count tin nhắn</span>
-            </div>
-            <div class="card-body">
-                <!-- Danh sách tin nhắn -->
-                <div class="d-flex flex-column gap-3 mb-4">
-                    @if (Model.Messages.Count == 0)
+<!-- Top Header & Actions -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3 p-md-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+                    <a asp-action="Index" class="btn btn-xs btn-outline-secondary me-1">
+                        <i class="bx bx-arrow-back me-1"></i>Back
+                    </a>
+                    <span class="font-monospace fs-5 fw-bold text-primary">@t.TicketCode</span>
+                    
+                    @switch (t.Status)
                     {
-                        <div class="text-center py-4 text-muted small fst-italic">
-                            Chưa có trao đổi nào. Hãy là người đầu tiên phản hồi yêu cầu này.
-                        </div>
+                        case TicketStatus.New:
+                            <span class="badge bg-label-primary text-uppercase">New</span>
+                            break;
+                        case TicketStatus.Assigned:
+                            <span class="badge bg-label-info text-uppercase">Assigned</span>
+                            break;
+                        case TicketStatus.InProgress:
+                            <span class="badge bg-label-warning text-uppercase">In Progress</span>
+                            break;
+                        case TicketStatus.Resolved:
+                            <span class="badge bg-label-success text-uppercase">Resolved</span>
+                            break;
+                        case TicketStatus.Closed:
+                            <span class="badge bg-label-secondary text-uppercase">Closed</span>
+                            break;
+                        case TicketStatus.Reopened:
+                            <span class="badge bg-label-danger text-uppercase">Reopened</span>
+                            break;
                     }
-                    @foreach (var msg in Model.Messages)
+
+                    @switch (t.Priority)
                     {
-                        <div class="p-3 rounded border @(msg.IsInternal ? "bg-warning-subtle border-warning" : "bg-light")">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="fw-bold @(msg.IsCurrentUserAuthor ? "text-primary" : "text-dark")">@msg.AuthorName</span>
-                                    @if (msg.IsInternal)
-                                    {
-                                        <span class="badge bg-warning text-dark border border-warning">
-                                            <i class="bi bi-eye-slash-fill me-1"></i>Ghi chú nội bộ
-                                        </span>
-                                    }
-                                </div>
-                                <span class="text-muted small font-monospace">@msg.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
-                            </div>
-                            <div style="white-space: pre-wrap;" class="small">@msg.Content</div>
-                        </div>
+                        case TicketPriority.Critical:
+                            <span class="badge bg-danger text-uppercase">Critical (4h SLA)</span>
+                            break;
+                        case TicketPriority.High:
+                            <span class="badge bg-warning text-uppercase">High (24h SLA)</span>
+                            break;
+                        case TicketPriority.Medium:
+                            <span class="badge bg-info text-uppercase">Medium (48h SLA)</span>
+                            break;
+                        default:
+                            <span class="badge bg-label-secondary text-uppercase">Low (72h SLA)</span>
+                            break;
+                    }
+
+                    @if (t.IsOverdue)
+                    {
+                        <span class="badge bg-danger">
+                            <i class="bx bx-alarm-exclamation me-1"></i>Overdue SLA
+                        </span>
                     }
                 </div>
+                <h4 class="fw-bold mb-0 text-dark">@t.Subject</h4>
+            </div>
 
-                <!-- Form gửi phản hồi mới -->
-                <div class="border-top pt-3">
-                    <form asp-action="AddMessage" method="post">
-                        <input type="hidden" name="TicketId" value="@t.Id" />
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold">Viết phản hồi / ghi chú mới:</label>
-                            <textarea name="Content" class="form-control form-control-sm" rows="3" 
-                                      placeholder="Nhập nội dung xử lý, ghi chú nội bộ hoặc cập nhật tiến độ..."></textarea>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="IsInternal" value="true" id="checkInternal">
-                                <label class="form-check-label small fw-semibold text-warning-emphasis" for="checkInternal">
-                                    <i class="bi bi-lock-fill me-1"></i>Đánh dấu là Ghi chú nội bộ (Chỉ nhân viên xem được)
-                                </label>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="bi bi-send me-1"></i>Gửi phản hồi
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Lịch sử chuyển trạng thái -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
-                <h2 class="h6 fw-bold mb-0">Lịch sử trạng thái</h2>
-                <span class="badge bg-secondary-subtle text-secondary">@t.StatusHistory.Count bản ghi</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0 small">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Thời gian</th>
-                                <th>Chuyển từ → Đến</th>
-                                <th>Người thực hiện</th>
-                                <th>Ghi chú</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var h in t.StatusHistory)
-                            {
-                                <tr>
-                                    <td class="text-muted">@h.ChangedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td>
-                                        <span class="badge bg-light text-secondary border">@h.FromStatus</span>
-                                        <i class="bi bi-arrow-right mx-1 text-muted small"></i>
-                                        <span class="badge bg-primary-subtle text-primary">@h.ToStatus</span>
-                                    </td>
-                                    <td class="fw-semibold">@h.ChangedByName</td>
-                                    <td class="text-muted">@(h.Notes ?? "—")</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Lịch sử phân công nhân viên -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
-                <h2 class="h6 fw-bold mb-0">Lịch sử phân công (Assignment History)</h2>
-                <span class="badge bg-secondary-subtle text-secondary">@t.AssignmentHistory.Count bản ghi</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0 small">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Thời gian</th>
-                                <th>Trước đó</th>
-                                <th>Phân công cho</th>
-                                <th>Người thực hiện</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (t.AssignmentHistory.Count == 0)
-                            {
-                                <tr>
-                                    <td colspan="4" class="text-center py-3 text-muted small">Chưa có lịch sử phân công</td>
-                                </tr>
-                            }
-                            @foreach (var a in t.AssignmentHistory)
-                            {
-                                <tr>
-                                    <td class="text-muted">@a.ChangedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td>@(a.PreviousAssigneeName ?? "Chưa phân công")</td>
-                                    <td class="fw-semibold text-primary">@(a.NewAssigneeName ?? "Gỡ phân công")</td>
-                                    <td class="text-muted">@a.ChangedByName</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Cột phải: Thông tin metadata & Phân công -->
-    <div class="col-lg-4">
-        <!-- Card Phân công nhân viên -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-transparent border-bottom py-3">
-                <h2 class="h6 fw-bold mb-0">
-                    <i class="bi bi-person-badge me-1"></i>Phân công xử lý
-                </h2>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <div class="text-muted small">Người đang phụ trách:</div>
-                    <div class="fw-bold fs-6 mt-1">
-                        @if (!string.IsNullOrEmpty(t.AssignedToName))
-                        {
-                            <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>@t.AssignedToName</span>
-                        }
-                        else
-                        {
-                            <span class="text-secondary"><i class="bi bi-dash-circle me-1"></i>Chưa được phân công</span>
-                        }
-                    </div>
-                </div>
-
-                @if (Model.CanAssign)
+            <!-- Workflow Transitions -->
+            <div class="d-flex flex-wrap gap-2">
+                @if (Model.CanUpdate)
                 {
-                    <form asp-action="Assign" method="post">
+                    <a asp-action="Edit" asp-route-id="@t.Id" class="btn btn-sm btn-outline-secondary">
+                        <i class="bx bx-edit me-1"></i>Edit
+                    </a>
+                }
+                @if (Model.AllowedTransitions.Contains(TicketStatus.InProgress) && Model.CanUpdate)
+                {
+                    <form asp-action="TransitionStatus" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
                         <input type="hidden" name="TicketId" value="@t.Id" />
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold text-muted">Chọn nhân viên phụ trách</label>
-                            <select name="AssigneeId" class="form-select form-select-sm" asp-items="Model.ActiveAgentOptions"></select>
-                            <div class="form-text small">Chỉ nhân viên đang hoạt động (Active) mới được phép nhận ticket.</div>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm w-100">
-                            <i class="bi bi-person-check me-1"></i>Cập nhật phân công
+                        <input type="hidden" name="TargetStatus" value="@TicketStatus.InProgress" />
+                        <button type="submit" class="btn btn-sm btn-warning">
+                            <i class="bx bx-play me-1"></i>Start Working
                         </button>
                     </form>
                 }
-                else
+                @if (Model.AllowedTransitions.Contains(TicketStatus.Resolved) && Model.CanResolve)
                 {
-                    <p class="text-muted small mb-0 fst-italic">
-                        Bạn không có quyền phân công lại ticket này.
-                    </p>
+                    <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#modalResolve">
+                        <i class="bx bx-check-circle me-1"></i>Resolve
+                    </button>
                 }
-            </div>
-        </div>
-
-        <!-- Card Thông tin SLA & Thời gian -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-transparent border-bottom py-3">
-                <h2 class="h6 fw-bold mb-0">
-                    <i class="bi bi-clock me-1"></i>Tiến độ & Cam kết SLA
-                </h2>
-            </div>
-            <div class="card-body">
-                <ul class="list-unstyled mb-0 d-flex flex-column gap-3 small">
-                    <li>
-                        <div class="text-muted">Hạn cam kết xử lý (Due At):</div>
-                        <div class="fw-bold @(t.IsOverdue ? "text-danger" : "text-dark")">
-                            @t.DueAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
-                            @if (t.IsOverdue)
-                            {
-                                <span class="badge bg-danger ms-1">Đã quá hạn</span>
-                            }
-                        </div>
-                    </li>
-                    <li>
-                        <div class="text-muted">Thời điểm khởi tạo:</div>
-                        <div class="fw-semibold">@t.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
-                    </li>
-                    <li>
-                        <div class="text-muted">Người tạo ticket:</div>
-                        <div class="fw-semibold">@t.CreatedByName</div>
-                    </li>
-                    @if (t.ResolvedAt.HasValue)
-                    {
-                        <li>
-                            <div class="text-muted">Thời điểm giải quyết:</div>
-                            <div class="fw-semibold text-success">@t.ResolvedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
-                        </li>
-                    }
-                    @if (t.ClosedAt.HasValue)
-                    {
-                        <li>
-                            <div class="text-muted">Thời điểm đóng:</div>
-                            <div class="fw-semibold text-secondary">@t.ClosedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
-                        </li>
-                    }
-                </ul>
-            </div>
-        </div>
-
-        <!-- Card Khách hàng -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-transparent border-bottom py-3">
-                <h2 class="h6 fw-bold mb-0">
-                    <i class="bi bi-building me-1"></i>Thông tin Khách hàng
-                </h2>
-            </div>
-            <div class="card-body small">
-                <div class="fw-bold fs-6 mb-1">
-                    <a asp-controller="Customer" asp-action="Detail" asp-route-id="@t.CustomerId" class="text-decoration-none">
-                        @t.CustomerName
-                    </a>
-                </div>
-                <div class="text-muted mb-2">
-                    <i class="bi bi-envelope me-1"></i>@t.CustomerEmail
-                </div>
-                <a asp-controller="Customer" asp-action="Detail" asp-route-id="@t.CustomerId" class="btn btn-outline-secondary btn-sm w-100">
-                    Xem hồ sơ khách hàng
-                </a>
+                @if (Model.AllowedTransitions.Contains(TicketStatus.Closed) && Model.CanClose)
+                {
+                    <form asp-action="TransitionStatus" method="post" class="d-inline"
+                          data-confirm="Are you sure you want to permanently close this ticket?"
+                          data-confirm-title="Close Ticket"
+                          data-confirm-btn="Close Ticket"
+                          data-confirm-class="btn-secondary">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="TicketId" value="@t.Id" />
+                        <input type="hidden" name="TargetStatus" value="@TicketStatus.Closed" />
+                        <button type="submit" class="btn btn-sm btn-secondary">
+                            <i class="bx bx-lock me-1"></i>Close Ticket
+                        </button>
+                    </form>
+                }
+                @if (Model.AllowedTransitions.Contains(TicketStatus.Reopened) && Model.CanReopen)
+                {
+                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#modalReopen">
+                        <i class="bx bx-reset me-1"></i>Reopen
+                    </button>
+                }
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Giải quyết Ticket -->
-<div class="modal fade" id="modalResolve" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form asp-action="TransitionStatus" method="post">
-                <input type="hidden" name="TicketId" value="@t.Id" />
-                <input type="hidden" name="TargetStatus" value="@TicketStatus.Resolved" />
-                <div class="modal-header">
-                    <h5 class="modal-title h6 fw-bold">Xác nhận giải quyết Ticket</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Ghi chú giải pháp xử lý:</label>
-                        <textarea name="Notes" class="form-control form-control-sm" rows="3" 
-                                  placeholder="Mô tả tóm tắt giải pháp đã áp dụng để hỗ trợ khách hàng..." required></textarea>
+<div class="row g-4">
+    <!-- Left Column: Primary Work Area (1 Single Card with Tabs) -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 mb-4">
+            
+            <!-- Description Snippet -->
+            <div class="card-body border-bottom pb-3">
+                <h6 class="fw-bold text-muted small text-uppercase mb-2 d-flex align-items-center">
+                    <i class="bx bx-detail me-1 fs-5"></i>Description
+                </h6>
+                <div class="p-3 bg-lighter rounded border border-light text-dark" style="white-space: pre-wrap; font-size: 0.9rem;">@t.Description</div>
+            </div>
+
+            <!-- Tab Headers: Discussion vs History -->
+            <div class="nav-align-top">
+                <ul class="nav nav-tabs ps-3" role="tablist">
+                    <li class="nav-item">
+                        <button type="button" class="nav-link active d-flex align-items-center" role="tab" data-bs-toggle="tab" data-bs-target="#tab-discussion">
+                            <i class="bx bx-conversation me-1"></i>Activity & Discussion
+                            <span class="badge rounded-pill bg-label-primary ms-2">@Model.Messages.Count</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button" class="nav-link d-flex align-items-center" role="tab" data-bs-toggle="tab" data-bs-target="#tab-history">
+                            <i class="bx bx-history me-1"></i>Lifecycle Audit History
+                            <span class="badge rounded-pill bg-label-secondary ms-2">@(t.StatusHistory.Count + t.AssignmentHistory.Count)</span>
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content p-4 mt-1">
+                <!-- TAB 1: Discussion & Replies -->
+                <div class="tab-pane fade show active" id="tab-discussion" role="tabpanel">
+                    <div class="d-flex flex-column gap-3 mb-4">
+                        @if (Model.Messages.Count == 0)
+                        {
+                            <div class="text-center py-4 text-muted small fst-italic">
+                                No replies or notes posted yet.
+                            </div>
+                        }
+                        @foreach (var msg in Model.Messages)
+                        {
+                            <div class="p-3 rounded border @(msg.IsInternal ? "border-warning bg-label-warning" : "border-light bg-lighter")">
+                                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar avatar-xs">
+                                            <span class="avatar-initial rounded-circle @(msg.IsCurrentUserAuthor ? "bg-primary text-white" : "bg-label-primary")">
+                                                @(msg.AuthorName.Length > 0 ? msg.AuthorName[0].ToString().ToUpper() : "U")
+                                            </span>
+                                        </div>
+                                        <span class="fw-semibold @(msg.IsCurrentUserAuthor ? "text-primary" : "text-dark")">@msg.AuthorName</span>
+                                        @if (msg.IsInternal)
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bx bx-lock-alt me-1"></i>Internal Note
+                                            </span>
+                                        }
+                                    </div>
+                                    <small class="text-muted font-monospace">@msg.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</small>
+                                </div>
+                                <div style="white-space: pre-wrap;" class="small text-dark">@msg.Content</div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Add Reply Form -->
+                    <div class="border-top pt-3">
+                        <form asp-action="AddMessage" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="TicketId" value="@t.Id" />
+                            <div class="mb-3">
+                                <textarea name="Content" class="form-control" rows="3" 
+                                          placeholder="Type your response, technical update, or resolution note..." required></textarea>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="IsInternal" value="true" id="checkInternal">
+                                    <label class="form-check-label small fw-semibold text-warning" for="checkInternal">
+                                        <i class="bx bx-lock-alt me-1"></i>Mark as Internal Staff Note
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm d-flex align-items-center">
+                                    <i class="bx bx-send me-1"></i>Send Response
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-success btn-sm">Xác nhận Giải quyết</button>
+
+                <!-- TAB 2: Combined History & Timeline -->
+                <div class="tab-pane fade" id="tab-history" role="tabpanel">
+                    <h6 class="fw-bold text-dark mb-2">Status Transitions</h6>
+                    <div class="table-responsive text-nowrap mb-4">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Transition</th>
+                                    <th>Changed By</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody class="table-border-bottom-0">
+                                @foreach (var h in t.StatusHistory)
+                                {
+                                    <tr>
+                                        <td class="text-muted small">@h.ChangedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>
+                                            <span class="badge bg-label-secondary">@h.FromStatus</span>
+                                            <i class="bx bx-right-arrow-alt mx-1 text-muted"></i>
+                                            <span class="badge bg-label-primary">@h.ToStatus</span>
+                                        </td>
+                                        <td class="fw-semibold small">@h.ChangedByName</td>
+                                        <td class="text-muted small text-truncate" style="max-width: 220px;">@(h.Notes ?? "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2">Assignment Changes</h6>
+                    <div class="table-responsive text-nowrap">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Previous Assignee</th>
+                                    <th>New Assignee</th>
+                                    <th>Changed By</th>
+                                </tr>
+                            </thead>
+                            <tbody class="table-border-bottom-0">
+                                @if (t.AssignmentHistory.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center py-3 text-muted small">No assignment changes recorded yet</td>
+                                    </tr>
+                                }
+                                @foreach (var a in t.AssignmentHistory)
+                                {
+                                    <tr>
+                                        <td class="text-muted small">@a.ChangedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td class="small">@(a.PreviousAssigneeName ?? "Unassigned")</td>
+                                        <td class="fw-semibold text-primary small">@(a.NewAssigneeName ?? "Unassigned")</td>
+                                        <td class="text-muted small">@a.ChangedByName</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Ticket Information (1 Single Compact Sidebar Card) -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header pb-2 border-bottom">
+                <h5 class="card-title mb-0 fw-semibold d-flex align-items-center">
+                    <i class="bx bx-info-circle text-primary me-2 fs-5"></i>Ticket Details
+                </h5>
+            </div>
+            
+            <div class="card-body pt-3">
+                <!-- Section 1: Assignee -->
+                <div class="mb-3 pb-3 border-bottom">
+                    <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Assigned Staff</span>
+                    <div class="d-flex align-items-center mb-2">
+                        @if (!string.IsNullOrEmpty(t.AssignedToName))
+                        {
+                            <div class="avatar avatar-xs me-2">
+                                <span class="avatar-initial rounded-circle bg-label-success">
+                                    <i class="bx bx-user-check"></i>
+                                </span>
+                            </div>
+                            <span class="fw-semibold text-dark">@t.AssignedToName</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted small fst-italic">
+                                <i class="bx bx-minus-circle me-1"></i>Unassigned
+                            </span>
+                        }
+                    </div>
+
+                    @if (Model.CanAssign)
+                    {
+                        <form asp-action="Assign" method="post" class="mt-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="TicketId" value="@t.Id" />
+                            <div class="input-group input-group-sm">
+                                <select name="AssigneeId" class="form-select" asp-items="Model.ActiveAgentOptions"></select>
+                                <button type="submit" class="btn btn-primary" title="Update Assignee">
+                                    <i class="bx bx-check"></i>
+                                </button>
+                            </div>
+                        </form>
+                    }
+                </div>
+
+                <!-- Section 2: Customer -->
+                <div class="mb-3 pb-3 border-bottom">
+                    <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Customer Profile</span>
+                    <div class="fw-bold">
+                        <a asp-controller="Customer" asp-action="Detail" asp-route-id="@t.CustomerId" class="text-primary">
+                            @t.CustomerName
+                        </a>
+                    </div>
+                    <div class="text-muted small d-flex align-items-center mt-1">
+                        <i class="bx bx-envelope me-1"></i>@t.CustomerEmail
+                    </div>
+                </div>
+
+                <!-- Section 3: SLA & Timestamps -->
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase d-block mb-2">SLA & Lifecycle</span>
+                    <ul class="list-unstyled mb-0 d-flex flex-column gap-2 small">
+                        <li class="d-flex justify-content-between">
+                            <span class="text-muted">Deadline:</span>
+                            <span class="fw-bold @(t.IsOverdue ? "text-danger" : "text-dark")">
+                                @t.DueAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                            </span>
+                        </li>
+                        <li class="d-flex justify-content-between">
+                            <span class="text-muted">Created:</span>
+                            <span class="fw-semibold text-dark">@t.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                        </li>
+                        <li class="d-flex justify-content-between">
+                            <span class="text-muted">Created By:</span>
+                            <span class="text-dark">@t.CreatedByName</span>
+                        </li>
+                        @if (t.ResolvedAt.HasValue)
+                        {
+                            <li class="d-flex justify-content-between">
+                                <span class="text-muted">Resolved:</span>
+                                <span class="fw-semibold text-success">@t.ResolvedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                            </li>
+                        }
+                        @if (t.ClosedAt.HasValue)
+                        {
+                            <li class="d-flex justify-content-between">
+                                <span class="text-muted">Closed:</span>
+                                <span class="fw-semibold text-secondary">@t.ClosedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Resolve Ticket -->
+<div class="modal fade" id="modalResolve" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <form asp-action="TransitionStatus" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="TicketId" value="@t.Id" />
+                <input type="hidden" name="TargetStatus" value="@TicketStatus.Resolved" />
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold">Confirm Ticket Resolution</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Resolution Summary / Notes</label>
+                        <textarea name="Notes" class="form-control" rows="3" 
+                                  placeholder="Describe the solution applied to resolve the customer's issue..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm">Confirm Resolution</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal Mở lại Ticket -->
+<!-- Modal Reopen Ticket -->
 <div class="modal fade" id="modalReopen" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
             <form asp-action="TransitionStatus" method="post">
+                @Html.AntiForgeryToken()
                 <input type="hidden" name="TicketId" value="@t.Id" />
                 <input type="hidden" name="TargetStatus" value="@TicketStatus.Reopened" />
-                <div class="modal-header">
-                    <h5 class="modal-title h6 fw-bold">Xác nhận mở lại Ticket</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold text-danger">Confirm Reopen Ticket</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Lý do mở lại:</label>
-                        <textarea name="Notes" class="form-control form-control-sm" rows="3" 
-                                  placeholder="Ví dụ: Khách hàng báo sự cố tái diễn sau khi cập nhật..." required></textarea>
+                        <label class="form-label small fw-semibold">Reason for Reopening</label>
+                        <textarea name="Notes" class="form-control" rows="3" 
+                                  placeholder="Describe why this issue is being reopened..." required></textarea>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-danger btn-sm">Xác nhận Mở lại</button>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Confirm Reopen</button>
                 </div>
             </form>
         </div>
