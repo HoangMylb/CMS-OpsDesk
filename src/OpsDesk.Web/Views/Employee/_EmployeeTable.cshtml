@@ -1,0 +1,154 @@
+@model OpsDesk.Web.ViewModels.Employee.EmployeeListViewModel
+@using OpsDesk.Core.Authorization
+
+<!-- Employee Table Card -->
+<div class="card shadow-sm border-0">
+    <div class="table-responsive text-nowrap">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Email Address</th>
+                    <th>Department</th>
+                    <th>Primary Role</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="table-border-bottom-0">
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bx bx-user-x display-4 d-block mb-2 text-secondary"></i>
+                            No employees found matching the criteria.
+                        </td>
+                    </tr>
+                }
+                @foreach (var emp in Model.Items)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-sm me-3">
+                                    <span class="avatar-initial rounded-circle @(emp.IsActive ? "bg-label-primary" : "bg-label-secondary")">
+                                        @(emp.FullName.Length > 0 ? emp.FullName[0].ToString().ToUpper() : "E")
+                                    </span>
+                                </div>
+                                <span class="fw-semibold text-dark">@emp.FullName</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="text-muted">@emp.Email</span>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(emp.DepartmentName))
+                            {
+                                <span class="badge bg-label-info">@emp.DepartmentName</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted small fst-italic">—</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(emp.RoleName))
+                            {
+                                foreach (var role in emp.RoleName.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                                {
+                                    <span class="badge bg-label-primary text-uppercase me-1 mb-1">@role</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="badge bg-label-secondary">None</span>
+                            }
+                        </td>
+                        <td>
+                            @if (emp.IsActive)
+                            {
+                                <span class="badge bg-label-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-label-danger">Deactivated</span>
+                            }
+                        </td>
+                        <td>
+                            <small class="text-muted">@emp.CreatedAt.ToString("yyyy-MM-dd")</small>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-flex gap-1 justify-content-end align-items-center">
+                                @if (User.HasClaim("Permission", Permissions.Employee.Update))
+                                {
+                                    <a asp-action="Edit" asp-route-id="@emp.Id" class="btn btn-sm btn-icon btn-outline-primary" title="Edit">
+                                        <i class="bx bx-edit"></i>
+                                    </a>
+                                }
+                                @if (User.HasClaim("Permission", Permissions.Employee.Deactivate))
+                                {
+                                    if (emp.IsActive)
+                                     {
+                                        <form asp-action="Deactivate" asp-route-id="@emp.Id" method="post" class="d-inline"
+                                              data-confirm="Are you sure you want to deactivate account @emp.FullName?"
+                                              data-confirm-title="Deactivate Employee"
+                                              data-confirm-btn="Deactivate"
+                                              data-confirm-class="btn-danger">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-icon btn-outline-danger" title="Deactivate">
+                                                <i class="bx bx-user-minus"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="Reactivate" asp-route-id="@emp.Id" method="post" class="d-inline"
+                                              data-confirm="Are you sure you want to reactivate account @emp.FullName?"
+                                              data-confirm-title="Reactivate Employee"
+                                              data-confirm-btn="Reactivate"
+                                              data-confirm-class="btn-success">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-icon btn-outline-success" title="Reactivate">
+                                                <i class="bx bx-user-check"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="text-muted small">
+                Showing page @Model.Page of @Model.TotalPages (Total @Model.TotalCount employees)
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search" asp-route-isActive="@Model.IsActive">
+                            <i class="bx bx-chevron-left"></i>
+                        </a>
+                    </li>
+                    @for (int p = 1; p <= Model.TotalPages; p++)
+                    {
+                        <li class="page-item @(p == Model.Page ? "active" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@p" asp-route-search="@Model.Search" asp-route-isActive="@Model.IsActive">@p</a>
+                        </li>
+                    }
+                    <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search" asp-route-isActive="@Model.IsActive">
+                            <i class="bx bx-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
+</div>

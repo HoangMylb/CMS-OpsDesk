@@ -16,13 +16,13 @@
 <!-- Search & Filter Card -->
 <div class="card mb-4 shadow-sm border-0">
     <div class="card-body">
-        <form asp-action="Index" method="get" class="row g-3 align-items-end">
+        <form asp-action="Index" method="get" class="row g-3 align-items-end" data-ajax-form data-ajax-target="auditlog-table-container">
             <div class="col-md-3">
                 <label class="form-label small fw-semibold">Action Pattern</label>
                 <div class="input-group input-group-merge">
                     <span class="input-group-text"><i class="bx bx-tag"></i></span>
-                    <input type="text" name="action" value="@Model.Action" class="form-control" 
-                           placeholder="TicketCreated, RoleUpdated..." />
+                    <input type="search" name="action" value="@Model.Action" class="form-control" 
+                           placeholder="TicketCreated, RoleUpdated..." autocomplete="off" />
                 </div>
             </div>
 
@@ -60,117 +60,10 @@
     </div>
 </div>
 
-<!-- Audit Log Table Card -->
-<div class="card shadow-sm border-0">
-    <div class="table-responsive text-nowrap">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th style="width: 170px;">Timestamp</th>
-                    <th style="width: 170px;">Actor & IP</th>
-                    <th style="width: 180px;">Action</th>
-                    <th style="width: 160px;">Target Entity</th>
-                    <th class="text-end">Payload Details</th>
-                </tr>
-            </thead>
-            <tbody class="table-border-bottom-0">
-                @if (Model.Items.Count == 0)
-                {
-                    <tr>
-                        <td colspan="5" class="text-center py-5 text-muted">
-                            <i class="bx bx-history display-4 d-block mb-2 text-secondary"></i>
-                            No audit log records match the search parameters.
-                        </td>
-                    </tr>
-                }
-                @foreach (var log in Model.Items)
-                {
-                    var hasData = !string.IsNullOrEmpty(log.NewValues) || !string.IsNullOrEmpty(log.OldValues);
-                    <tr>
-                        <td>
-                            <div class="font-monospace small text-muted">
-                                @log.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
-                            </div>
-                        </td>
-                        <td>
-                            <div class="fw-semibold text-dark">@log.UserName</div>
-                            @if (!string.IsNullOrEmpty(log.IPAddress))
-                            {
-                                <small class="text-muted font-monospace d-flex align-items-center">
-                                    <i class="bx bx-globe me-1"></i>@log.IPAddress
-                                </small>
-                            }
-                        </td>
-                        <td>
-                            <span class="badge bg-label-primary font-monospace">@log.Action</span>
-                        </td>
-                        <td>
-                            <span class="fw-semibold text-dark">@log.EntityName</span>
-                            <small class="text-muted font-monospace d-block">ID: #@log.EntityId</small>
-                        </td>
-                        <td class="text-end">
-                            @if (hasData)
-                            {
-                                <button type="button" class="btn btn-xs btn-outline-primary d-inline-flex align-items-center"
-                                        onclick='showAuditModal("@log.Action", "@log.EntityName", "@log.EntityId", @Html.Raw(System.Text.Json.JsonSerializer.Serialize(log.OldValues ?? "")), @Html.Raw(System.Text.Json.JsonSerializer.Serialize(log.NewValues ?? "")))'>
-                                    <i class="bx bx-code-alt me-1"></i>View JSON
-                                </button>
-                            }
-                            else
-                            {
-                                <span class="text-muted small">—</span>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
-    @if (Model.TotalPages > 1)
-    {
-        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div class="text-muted small">
-                Showing page @Model.Page of @Model.TotalPages (Total @Model.TotalCount log entries)
-            </div>
-            <nav>
-                <ul class="pagination pagination-sm mb-0">
-                    <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
-                        <a class="page-link" asp-action="Index" 
-                           asp-route-page="@(Model.Page - 1)" 
-                           asp-route-action="@Model.Action"
-                           asp-route-entityName="@Model.EntityName"
-                           asp-route-fromDate="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
-                           asp-route-toDate="@(Model.ToDate?.ToString("yyyy-MM-dd"))">
-                            <i class="bx bx-chevron-left"></i>
-                        </a>
-                    </li>
-                    @for (int p = 1; p <= Model.TotalPages; p++)
-                    {
-                        <li class="page-item @(p == Model.Page ? "active" : "")">
-                            <a class="page-link" asp-action="Index" 
-                               asp-route-page="@p" 
-                               asp-route-action="@Model.Action"
-                               asp-route-entityName="@Model.EntityName"
-                               asp-route-fromDate="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
-                               asp-route-toDate="@(Model.ToDate?.ToString("yyyy-MM-dd"))">@p</a>
-                        </li>
-                    }
-                    <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
-                        <a class="page-link" asp-action="Index" 
-                           asp-route-page="@(Model.Page + 1)" 
-                           asp-route-action="@Model.Action"
-                           asp-route-entityName="@Model.EntityName"
-                           asp-route-fromDate="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
-                           asp-route-toDate="@(Model.ToDate?.ToString("yyyy-MM-dd"))">
-                            <i class="bx bx-chevron-right"></i>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-    }
+<div id="auditlog-table-container">
+    <partial name="_AuditLogTable" model="Model" />
 </div>
+
 
 <!-- Modal: Audit JSON Detail -->
 <div class="modal fade" id="auditDetailModal" tabindex="-1" aria-hidden="true">

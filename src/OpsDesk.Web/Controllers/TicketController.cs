@@ -85,6 +85,11 @@ public class TicketController : Controller
             CanAssign = canAssign
         };
 
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" || Request.Query.ContainsKey("partial"))
+        {
+            return PartialView("_TicketTable", vm);
+        }
+
         return View(vm);
     }
 

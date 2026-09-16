@@ -52,6 +52,12 @@ public class AuditLogController : Controller
             ToDate = toDate
         };
 
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" || Request.Query.ContainsKey("partial"))
+        {
+            return PartialView("_AuditLogTable", vm);
+        }
+
         return View(vm);
     }
 }
+

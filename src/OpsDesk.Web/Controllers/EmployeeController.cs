@@ -39,6 +39,12 @@ public class EmployeeController : Controller
             Search = search,
             IsActive = isActive,
         };
+
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" || Request.Query.ContainsKey("partial"))
+        {
+            return PartialView("_EmployeeTable", vm);
+        }
+
         return View(vm);
     }
 

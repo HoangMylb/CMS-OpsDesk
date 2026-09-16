@@ -22,13 +22,13 @@
 <!-- Filters Card -->
 <div class="card mb-4 shadow-sm border-0">
     <div class="card-body">
-        <form asp-action="Index" method="get" class="row g-3 align-items-end">
+        <form asp-action="Index" method="get" class="row g-3 align-items-end" data-ajax-form data-ajax-target="ticket-table-container">
             <div class="col-md-3">
                 <label class="form-label small fw-semibold">Search Keywords</label>
                 <div class="input-group input-group-merge">
                     <span class="input-group-text"><i class="bx bx-search"></i></span>
-                    <input type="text" name="search" value="@Model.Search" class="form-control" 
-                           placeholder="Code, subject, customer..." />
+                    <input type="search" name="search" value="@Model.Search" class="form-control" 
+                           placeholder="Code, subject, customer..." autocomplete="off" />
                 </div>
             </div>
 
@@ -76,166 +76,7 @@
     </div>
 </div>
 
-<!-- Ticket Table Card -->
-<div class="card shadow-sm border-0">
-    <div class="table-responsive text-nowrap">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th style="width: 140px;">Ticket Code</th>
-                    <th>Subject & Customer</th>
-                    <th>Priority</th>
-                    <th>Status</th>
-                    <th>Assignee</th>
-                    <th>SLA Deadline</th>
-                    <th class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="table-border-bottom-0">
-                @if (Model.Items.Count == 0)
-                {
-                    <tr>
-                        <td colspan="7" class="text-center py-5 text-muted">
-                            <i class="bx bx-folder-open display-4 d-block mb-2 text-secondary"></i>
-                            No tickets matched the search criteria.
-                        </td>
-                    </tr>
-                }
-                @foreach (var t in Model.Items)
-                {
-                    <tr class="@(t.IsOverdue ? "table-danger" : "")">
-                        <td>
-                            <a asp-action="Detail" asp-route-id="@t.Id" class="fw-bold font-monospace text-primary">
-                                @t.TicketCode
-                            </a>
-                        </td>
-                        <td>
-                            <div class="fw-semibold text-dark text-truncate" style="max-width: 280px;" title="@t.Subject">
-                                @t.Subject
-                            </div>
-                            <small class="text-muted d-flex align-items-center">
-                                <i class="bx bx-user me-1"></i>@t.CustomerName
-                            </small>
-                        </td>
-                        <td>
-                            @switch (t.Priority)
-                            {
-                                case TicketPriority.Critical:
-                                    <span class="badge bg-label-danger text-uppercase fw-semibold">Critical (4h)</span>
-                                    break;
-                                case TicketPriority.High:
-                                    <span class="badge bg-label-warning text-uppercase fw-semibold">High (24h)</span>
-                                    break;
-                                case TicketPriority.Medium:
-                                    <span class="badge bg-label-info text-uppercase fw-semibold">Medium (48h)</span>
-                                    break;
-                                default:
-                                    <span class="badge bg-label-secondary text-uppercase fw-semibold">Low (72h)</span>
-                                    break;
-                            }
-                        </td>
-                        <td>
-                            @switch (t.Status)
-                            {
-                                case TicketStatus.New:
-                                    <span class="badge bg-label-primary text-uppercase">New</span>
-                                    break;
-                                case TicketStatus.Assigned:
-                                    <span class="badge bg-label-info text-uppercase">Assigned</span>
-                                    break;
-                                case TicketStatus.InProgress:
-                                    <span class="badge bg-label-warning text-uppercase">In Progress</span>
-                                    break;
-                                case TicketStatus.Resolved:
-                                    <span class="badge bg-label-success text-uppercase">Resolved</span>
-                                    break;
-                                case TicketStatus.Closed:
-                                    <span class="badge bg-label-secondary text-uppercase">Closed</span>
-                                    break;
-                                case TicketStatus.Reopened:
-                                    <span class="badge bg-label-danger text-uppercase">Reopened</span>
-                                    break;
-                            }
-                        </td>
-                        <td>
-                            @if (!string.IsNullOrEmpty(t.AssignedToName))
-                            {
-                                <div class="d-flex align-items-center">
-                                    <i class="bx bx-user-check text-success me-1"></i>
-                                    <span class="small fw-semibold">@t.AssignedToName</span>
-                                </div>
-                            }
-                            else
-                            {
-                                <span class="small text-muted fst-italic">
-                                    <i class="bx bx-user-x text-secondary me-1"></i>Unassigned
-                                </span>
-                            }
-                        </td>
-                        <td>
-                            <div class="small @(t.IsOverdue ? "text-danger fw-bold" : "text-muted")">
-                                @t.DueAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
-                                @if (t.IsOverdue)
-                                {
-                                    <span class="badge bg-danger ms-1">Overdue</span>
-                                }
-                            </div>
-                        </td>
-                        <td class="text-end">
-                            <a asp-action="Detail" asp-route-id="@t.Id" class="btn btn-sm btn-icon btn-outline-secondary" title="View details">
-                                <i class="bx bx-chevron-right"></i>
-                            </a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
-    @if (Model.TotalPages > 1)
-    {
-        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div class="text-muted small">
-                Showing page @Model.Page of @Model.TotalPages (Total @Model.TotalCount tickets)
-            </div>
-            <nav>
-                <ul class="pagination pagination-sm mb-0">
-                    <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
-                        <a class="page-link" asp-action="Index" 
-                           asp-route-page="@(Model.Page - 1)" 
-                           asp-route-search="@Model.Search"
-                           asp-route-status="@Model.Status"
-                           asp-route-priority="@Model.Priority"
-                           asp-route-assignedToUserId="@Model.AssignedToUserId"
-                           asp-route-overdueOnly="@Model.OverdueOnly">
-                            <i class="bx bx-chevron-left"></i>
-                        </a>
-                    </li>
-                    @for (int p = 1; p <= Model.TotalPages; p++)
-                    {
-                        <li class="page-item @(p == Model.Page ? "active" : "")">
-                            <a class="page-link" asp-action="Index" 
-                               asp-route-page="@p"
-                               asp-route-search="@Model.Search"
-                               asp-route-status="@Model.Status"
-                               asp-route-priority="@Model.Priority"
-                               asp-route-assignedToUserId="@Model.AssignedToUserId"
-                               asp-route-overdueOnly="@Model.OverdueOnly">@p</a>
-                        </li>
-                    }
-                    <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
-                        <a class="page-link" asp-action="Index" 
-                           asp-route-page="@(Model.Page + 1)"
-                           asp-route-search="@Model.Search"
-                           asp-route-status="@Model.Status"
-                           asp-route-priority="@Model.Priority"
-                           asp-route-assignedToUserId="@Model.AssignedToUserId"
-                           asp-route-overdueOnly="@Model.OverdueOnly">
-                            <i class="bx bx-chevron-right"></i>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-    }
+<div id="ticket-table-container">
+    <partial name="_TicketTable" model="Model" />
 </div>
+

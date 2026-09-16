@@ -34,6 +34,11 @@ public class CustomerController : Controller
             Search = search
         };
 
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" || Request.Query.ContainsKey("partial"))
+        {
+            return PartialView("_CustomerTable", vm);
+        }
+
         return View(vm);
     }
 
