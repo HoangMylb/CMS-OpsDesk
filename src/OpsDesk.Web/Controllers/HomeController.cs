@@ -14,6 +14,7 @@ public class HomeController : Controller
         _logger = logger;
     }
 
+    [HttpGet, HttpHead]
     public IActionResult Index()
     {
         return RedirectToAction("Index", "Dashboard");

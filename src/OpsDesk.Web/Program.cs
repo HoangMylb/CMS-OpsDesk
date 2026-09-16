@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpsDesk.Core.Entities;
@@ -166,6 +167,11 @@ else
     app.UseHsts();
 }
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 // Custom 404/403 pages — UseStatusCodePagesWithReExecute re-runs the pipeline
 // through the specified path, which means our error controllers render proper views.
 app.UseStatusCodePagesWithReExecute("/Home/Error/{0}");
@@ -180,7 +186,11 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseStaticFiles();   // serve wwwroot (Bootstrap, CSS, JS)
 app.UseRouting();
 
@@ -188,6 +198,8 @@ app.UseRouting();
 // Without UseAuthentication, the cookie is never parsed and User is always anonymous.
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet("/healthz", () => Results.Ok("healthy"));
 
 app.MapControllerRoute(
     name: "default",
