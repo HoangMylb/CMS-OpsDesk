@@ -1,0 +1,245 @@
+@model OpsDesk.Web.ViewModels.Ticket.TicketListViewModel
+@using OpsDesk.Core.Enums
+@{
+    ViewData["Title"] = "Danh sách Phiếu hỗ trợ";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h4 fw-bold mb-1">Phiếu hỗ trợ (Tickets)</h1>
+        <p class="text-muted small mb-0">
+            @if (Model.CanViewAll)
+            {
+                <span>Xem toàn bộ các yêu cầu hỗ trợ trong hệ thống</span>
+            }
+            else
+            {
+                <span>Các yêu cầu hỗ trợ được phân công cho bạn</span>
+            }
+        </p>
+    </div>
+    @if (Model.CanCreate)
+    {
+        <a asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Tạo ticket mới
+        </a>
+    }
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-1"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Bộ lọc tìm kiếm -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted">Từ khóa</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="search" value="@Model.Search" class="form-control border-start-0" 
+                           placeholder="Mã ticket, tiêu đề, khách hàng..." />
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold text-muted">Trạng thái</label>
+                <select name="status" class="form-select form-select-sm" asp-items="Html.GetEnumSelectList<TicketStatus>()">
+                    <option value="">-- Tất cả trạng thái --</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold text-muted">Mức độ ưu tiên</label>
+                <select name="priority" class="form-select form-select-sm" asp-items="Html.GetEnumSelectList<TicketPriority>()">
+                    <option value="">-- Tất cả ưu tiên --</option>
+                </select>
+            </div>
+
+            @if (Model.CanViewAll)
+            {
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold text-muted">Người phụ trách</label>
+                    <select name="assignedToUserId" class="form-select form-select-sm" asp-items="Model.AgentOptions"></select>
+                </div>
+            }
+
+            <div class="col-md-2 d-flex align-items-center pb-1">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="overdueOnly" value="true" id="overdueOnly" 
+                           @(Model.OverdueOnly == true ? "checked" : "") />
+                    <label class="form-check-label small fw-semibold text-danger" for="overdueOnly">
+                        <i class="bi bi-clock-history me-1"></i>Chỉ quá hạn SLA
+                    </label>
+                </div>
+            </div>
+
+            <div class="col-md-1 d-flex gap-1">
+                <button type="submit" class="btn btn-primary btn-sm w-100" title="Tìm kiếm">
+                    <i class="bi bi-filter"></i>
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="Đặt lại bộ lọc">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bảng danh sách ticket -->
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 140px;">Mã ticket</th>
+                    <th>Tiêu đề & Khách hàng</th>
+                    <th style="width: 120px;">Ưu tiên</th>
+                    <th style="width: 130px;">Trạng thái</th>
+                    <th style="width: 160px;">Người phụ trách</th>
+                    <th style="width: 160px;">Hạn SLA</th>
+                    <th style="width: 80px;" class="text-end">Chi tiết</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox display-6 d-block mb-2 text-secondary"></i>
+                            Không có ticket nào phù hợp với điều kiện tìm kiếm.
+                        </td>
+                    </tr>
+                }
+                @foreach (var t in Model.Items)
+                {
+                    <tr class="@(t.IsOverdue ? "table-danger-subtle" : "")">
+                        <td>
+                            <a asp-action="Detail" asp-route-id="@t.Id" class="fw-bold font-monospace text-decoration-none">
+                                @t.TicketCode
+                            </a>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">@t.Subject</div>
+                            <small class="text-muted">
+                                <i class="bi bi-person me-1"></i>@t.CustomerName
+                            </small>
+                        </td>
+                        <td>
+                            @switch (t.Priority)
+                            {
+                                case TicketPriority.Critical:
+                                    <span class="badge bg-danger">Khẩn cấp (4h)</span>
+                                    break;
+                                case TicketPriority.High:
+                                    <span class="badge bg-warning text-dark">Cao (24h)</span>
+                                    break;
+                                case TicketPriority.Medium:
+                                    <span class="badge bg-info text-dark">Trung bình (48h)</span>
+                                    break;
+                                default:
+                                    <span class="badge bg-light text-secondary border">Thấp (72h)</span>
+                                    break;
+                            }
+                        </td>
+                        <td>
+                            @switch (t.Status)
+                            {
+                                case TicketStatus.New:
+                                    <span class="badge bg-primary">Mới</span>
+                                    break;
+                                case TicketStatus.Assigned:
+                                    <span class="badge bg-info text-dark">Đã phân công</span>
+                                    break;
+                                case TicketStatus.InProgress:
+                                    <span class="badge bg-warning text-dark">Đang xử lý</span>
+                                    break;
+                                case TicketStatus.Resolved:
+                                    <span class="badge bg-success">Đã giải quyết</span>
+                                    break;
+                                case TicketStatus.Closed:
+                                    <span class="badge bg-secondary">Đã đóng</span>
+                                    break;
+                                case TicketStatus.Reopened:
+                                    <span class="badge bg-danger">Mở lại</span>
+                                    break;
+                            }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(t.AssignedToName))
+                            {
+                                <span class="small fw-medium"><i class="bi bi-person-check text-success me-1"></i>@t.AssignedToName</span>
+                            }
+                            else
+                            {
+                                <span class="small text-muted fst-italic"><i class="bi bi-person-dash text-secondary me-1"></i>Chưa phân công</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="small @(t.IsOverdue ? "text-danger fw-bold" : "text-muted")">
+                                @t.DueAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                @if (t.IsOverdue)
+                                {
+                                    <span class="badge bg-danger ms-1">Quá hạn</span>
+                                }
+                            </div>
+                        </td>
+                        <td class="text-end">
+                            <a asp-action="Detail" asp-route-id="@t.Id" class="btn btn-outline-secondary btn-sm" title="Xem chi tiết">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="card-footer bg-transparent border-top py-3 d-flex justify-content-between align-items-center">
+            <div class="text-muted small">
+                Hiển thị trang @Model.Page / @Model.TotalPages (Tổng cộng @Model.TotalCount ticket)
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" 
+                           asp-route-page="@(Model.Page - 1)" 
+                           asp-route-search="@Model.Search"
+                           asp-route-status="@Model.Status"
+                           asp-route-priority="@Model.Priority"
+                           asp-route-assignedToUserId="@Model.AssignedToUserId"
+                           asp-route-overdueOnly="@Model.OverdueOnly">Trước</a>
+                    </li>
+                    @for (int p = 1; p <= Model.TotalPages; p++)
+                    {
+                        <li class="page-item @(p == Model.Page ? "active" : "")">
+                            <a class="page-link" asp-action="Index" 
+                               asp-route-page="@p"
+                               asp-route-search="@Model.Search"
+                               asp-route-status="@Model.Status"
+                               asp-route-priority="@Model.Priority"
+                               asp-route-assignedToUserId="@Model.AssignedToUserId"
+                               asp-route-overdueOnly="@Model.OverdueOnly">@p</a>
+                        </li>
+                    }
+                    <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" 
+                           asp-route-page="@(Model.Page + 1)"
+                           asp-route-search="@Model.Search"
+                           asp-route-status="@Model.Status"
+                           asp-route-priority="@Model.Priority"
+                           asp-route-assignedToUserId="@Model.AssignedToUserId"
+                           asp-route-overdueOnly="@Model.OverdueOnly">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
+</div>

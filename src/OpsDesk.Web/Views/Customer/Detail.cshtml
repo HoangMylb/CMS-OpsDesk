@@ -1,0 +1,172 @@
+@model OpsDesk.Web.ViewModels.Customer.CustomerDetailViewModel
+@using OpsDesk.Core.Enums
+@{
+    ViewData["Title"] = $"Khách hàng: {Model.Customer.Name}";
+    var c = Model.Customer;
+}
+
+<div class="mb-4">
+    <a asp-action="Index" class="btn btn-link text-decoration-none p-0 mb-2">
+        <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách khách hàng
+    </a>
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <h1 class="h4 fw-bold mb-1">@c.Name</h1>
+            <p class="text-muted small mb-0">Tạo ngày: @c.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-pencil me-1"></i>Chỉnh sửa
+            </a>
+            <a asp-controller="Ticket" asp-action="Create" asp-route-customerId="@c.Id" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i>Tạo ticket mới
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-1"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-transparent border-bottom py-3">
+                <h2 class="h6 fw-bold mb-0">Thông tin liên hệ</h2>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+                    <li>
+                        <div class="text-muted small">Địa chỉ Email</div>
+                        <div class="fw-semibold">
+                            <a href="mailto:@c.Email" class="text-decoration-none">@c.Email</a>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="text-muted small">Số điện thoại</div>
+                        <div class="fw-semibold">
+                            @(string.IsNullOrEmpty(c.Phone) ? "—" : c.Phone)
+                        </div>
+                    </li>
+                    <li>
+                        <div class="text-muted small">Công ty / Tổ chức</div>
+                        <div class="fw-semibold">
+                            @(string.IsNullOrEmpty(c.Company) ? "—" : c.Company)
+                        </div>
+                    </li>
+                    <li>
+                        <div class="text-muted small">Cập nhật lần cuối</div>
+                        <div class="fw-semibold">
+                            @c.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
+                <h2 class="h6 fw-bold mb-0">Lịch sử phiếu hỗ trợ (Tickets)</h2>
+                <span class="badge bg-secondary-subtle text-secondary">@c.Tickets.Count phiếu</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã ticket</th>
+                            <th>Tiêu đề</th>
+                            <th>Ưu tiên</th>
+                            <th>Trạng thái</th>
+                            <th>Người phụ trách</th>
+                            <th>Hạn SLA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (c.Tickets.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    Khách hàng này chưa có ticket nào.
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var t in c.Tickets)
+                        {
+                            <tr>
+                                <td>
+                                    <a asp-controller="Ticket" asp-action="Detail" asp-route-id="@t.Id" class="fw-semibold font-monospace text-decoration-none">
+                                        @t.TicketCode
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="d-inline-block text-truncate" style="max-width: 250px;">
+                                        @t.Subject
+                                    </span>
+                                </td>
+                                <td>
+                                    @switch (t.Priority)
+                                    {
+                                        case TicketPriority.Critical:
+                                            <span class="badge bg-danger">Khẩn cấp</span>
+                                            break;
+                                        case TicketPriority.High:
+                                            <span class="badge bg-warning text-dark">Cao</span>
+                                            break;
+                                        case TicketPriority.Medium:
+                                            <span class="badge bg-info text-dark">Trung bình</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-light text-secondary border">Thấp</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @switch (t.Status)
+                                    {
+                                        case TicketStatus.New:
+                                            <span class="badge bg-primary">Mới</span>
+                                            break;
+                                        case TicketStatus.Assigned:
+                                            <span class="badge bg-info text-dark">Đã phân công</span>
+                                            break;
+                                        case TicketStatus.InProgress:
+                                            <span class="badge bg-warning text-dark">Đang xử lý</span>
+                                            break;
+                                        case TicketStatus.Resolved:
+                                            <span class="badge bg-success">Đã giải quyết</span>
+                                            break;
+                                        case TicketStatus.Closed:
+                                            <span class="badge bg-secondary">Đã đóng</span>
+                                            break;
+                                        case TicketStatus.Reopened:
+                                            <span class="badge bg-danger">Mở lại</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @(t.AssignedToName ?? "Chưa phân công")
+                                </td>
+                                <td>
+                                    <div class="small @(t.IsOverdue ? "text-danger fw-bold" : "")">
+                                        @t.DueAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                        @if (t.IsOverdue)
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger ms-1">Quá hạn</span>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

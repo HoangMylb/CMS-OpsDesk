@@ -1,0 +1,76 @@
+@model OpsDesk.Web.ViewModels.Role.EditRolePermissionsViewModel
+@{
+    ViewData["Title"] = $"Phân quyền: {Model.RoleName}";
+}
+
+<div class="mb-4">
+    <a asp-action="Index" class="btn btn-link text-decoration-none p-0 mb-2">
+        <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách vai trò
+    </a>
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <h1 class="h4 fw-bold mb-1">Phân quyền cho vai trò: <span class="text-primary">@Model.RoleName</span></h1>
+            <p class="text-muted small mb-0">Tích chọn các quyền hạn mà người dùng thuộc vai trò này được phép thực hiện</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnSelectAll">Chọn tất cả</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnDeselectAll">Bỏ chọn tất cả</button>
+        </div>
+    </div>
+</div>
+
+<form asp-action="EditPermissions" method="post">
+    <input type="hidden" asp-for="RoleId" />
+    <input type="hidden" asp-for="RoleName" />
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" role="alert"></div>
+
+    <div class="row g-3">
+        @foreach (var group in Model.AllGroups)
+        {
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-light border-bottom py-2 d-flex align-items-center justify-content-between">
+                        <span class="fw-semibold text-dark">@group.Domain</span>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="d-flex flex-column gap-2">
+                            @foreach (var item in group.Items)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input perm-checkbox" type="checkbox" 
+                                           name="SelectedPermissions" 
+                                           value="@item.Value" 
+                                           id="perm_@item.Value.Replace('.', '_')" 
+                                           @(item.IsSelected ? "checked" : "") />
+                                    <label class="form-check-label" for="perm_@item.Value.Replace('.', '_')">
+                                        <span class="fw-medium">@item.Label</span>
+                                        <small class="text-muted d-block font-monospace">@item.Value</small>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-4">
+        <a asp-action="Index" class="btn btn-outline-secondary">Hủy</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check2-circle me-1"></i>Lưu cấu hình quyền
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        document.getElementById('btnSelectAll').addEventListener('click', function() {
+            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = true);
+        });
+        document.getElementById('btnDeselectAll').addEventListener('click', function() {
+            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = false);
+        });
+    </script>
+}

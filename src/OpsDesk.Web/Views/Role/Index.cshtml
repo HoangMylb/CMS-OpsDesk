@@ -1,0 +1,91 @@
+@model OpsDesk.Web.ViewModels.Role.RoleListViewModel
+@using OpsDesk.Core.Authorization
+@{
+    ViewData["Title"] = "Vai trò & Phân quyền";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h4 fw-bold mb-1">Vai trò & Phân quyền</h1>
+        <p class="text-muted small mb-0">Quản lý các vai trò và cấu hình quyền truy cập (Permission-based)</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>Thêm vai trò
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-1"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-circle me-1"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 200px;">Tên vai trò</th>
+                    <th>Quyền hạn được cấp</th>
+                    <th style="width: 150px;" class="text-end">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var role in Model.Roles)
+                {
+                    <tr>
+                        <td>
+                            <span class="fw-semibold">@role.Name</span>
+                            @if (role.Name is "Admin" or "Manager" or "SupportAgent")
+                            {
+                                <span class="badge bg-secondary-subtle text-secondary ms-1">Mặc định</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                                @if (role.Permissions.Count == 0)
+                                {
+                                    <span class="text-muted small fst-italic">Chưa có quyền hạn nào</span>
+                                }
+                                else
+                                {
+                                    @foreach (var perm in role.Permissions)
+                                    {
+                                        <span class="badge bg-light text-dark border">@perm</span>
+                                    }
+                                }
+                            </div>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1">
+                                <a asp-action="EditPermissions" asp-route-id="@role.Id" 
+                                   class="btn btn-outline-primary btn-sm" title="Phân quyền">
+                                    <i class="bi bi-shield-lock me-1"></i>Phân quyền
+                                </a>
+                                @if (role.Name is not ("Admin" or "Manager" or "SupportAgent"))
+                                {
+                                    <form asp-action="Delete" asp-route-id="@role.Id" method="post" 
+                                          onsubmit="return confirm('Bạn có chắc muốn xóa vai trò này?');" class="d-inline">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -92,10 +92,13 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<DatabaseSeeder>();
 
-// Business services will be registered here as we implement each phase.
-// e.g.:
-//   builder.Services.AddScoped<ITicketService, TicketService>();
-//   builder.Services.AddScoped<ITicketWorkflowService, TicketWorkflowService>();
+// Business services
+builder.Services.AddScoped<OpsDesk.Core.Services.IAuditService, OpsDesk.Infrastructure.Services.AuditService>();
+builder.Services.AddScoped<OpsDesk.Core.Services.IEmployeeService, OpsDesk.Infrastructure.Services.EmployeeService>();
+builder.Services.AddScoped<OpsDesk.Core.Services.IRoleService, OpsDesk.Infrastructure.Services.RoleService>();
+builder.Services.AddScoped<OpsDesk.Core.Services.ICustomerService, OpsDesk.Infrastructure.Services.CustomerService>();
+builder.Services.AddScoped<OpsDesk.Core.Services.ISlaService, OpsDesk.Infrastructure.Services.SlaService>();
+builder.Services.AddScoped<OpsDesk.Core.Services.ITicketService, OpsDesk.Infrastructure.Services.TicketService>();
 
 // ============================================================
 // MVC

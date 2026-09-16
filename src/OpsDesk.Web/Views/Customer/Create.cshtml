@@ -1,0 +1,60 @@
+@model OpsDesk.Web.ViewModels.Customer.CreateCustomerViewModel
+@{
+    ViewData["Title"] = "Thêm khách hàng";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                <a asp-action="Index" class="btn btn-link text-decoration-none p-0 mb-2">
+                    <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách
+                </a>
+                <h1 class="h5 fw-bold mb-1">Thêm khách hàng mới</h1>
+                <p class="text-muted small mb-0">Nhập thông tin người liên hệ hoặc doanh nghiệp cần hỗ trợ</p>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label fw-semibold"></label>
+                        <input asp-for="Name" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" autofocus />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label fw-semibold"></label>
+                        <input asp-for="Email" class="form-control" placeholder="nguyenvana@example.com" type="email" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                        <div class="form-text">Email dùng để nhận thông báo tiến độ ticket và phải là duy nhất.</div>
+                    </div>
+
+                    <div class="row mb-3 g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Phone" class="form-label fw-semibold"></label>
+                            <input asp-for="Phone" class="form-control" placeholder="0901234567" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Company" class="form-label fw-semibold"></label>
+                            <input asp-for="Company" class="form-control" placeholder="Công ty ABC" />
+                            <span asp-validation-for="Company" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a asp-action="Index" class="btn btn-outline-secondary">Hủy</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Thêm khách hàng
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

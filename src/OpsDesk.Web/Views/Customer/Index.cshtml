@@ -1,0 +1,150 @@
+@model OpsDesk.Web.ViewModels.Customer.CustomerListViewModel
+@using OpsDesk.Core.Authorization
+@{
+    ViewData["Title"] = "Khách hàng";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h4 fw-bold mb-1">Quản lý Khách hàng</h1>
+        <p class="text-muted small mb-0">Danh sách khách hàng và các tổ chức liên hệ</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary btn-sm">
+        <i class="bi bi-person-plus me-1"></i>Thêm khách hàng
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-1"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-2 align-items-center">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="search" value="@Model.Search" class="form-control border-start-0" 
+                           placeholder="Tìm kiếm theo tên, email, công ty, số điện thoại..." />
+                </div>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-secondary flex-grow-1">Tìm kiếm</button>
+                @if (!string.IsNullOrEmpty(Model.Search))
+                {
+                    <a asp-action="Index" class="btn btn-outline-secondary">Xóa lọc</a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Khách hàng</th>
+                    <th>Công ty</th>
+                    <th>Liên hệ</th>
+                    <th class="text-center">Tickets đang mở</th>
+                    <th class="text-center">Tổng tickets</th>
+                    <th class="text-end">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-people display-6 d-block mb-2 text-secondary"></i>
+                            Không tìm thấy khách hàng nào phù hợp.
+                        </td>
+                    </tr>
+                }
+                @foreach (var customer in Model.Items)
+                {
+                    <tr>
+                        <td>
+                            <a asp-action="Detail" asp-route-id="@customer.Id" class="fw-semibold text-decoration-none">
+                                @customer.Name
+                            </a>
+                            <div class="text-muted small">@customer.Email</div>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(customer.Company))
+                            {
+                                <span class="badge bg-light text-dark border">@customer.Company</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted small fst-italic">—</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="small">
+                                @if (!string.IsNullOrEmpty(customer.Phone))
+                                {
+                                    <div><i class="bi bi-telephone text-muted me-1"></i>@customer.Phone</div>
+                                }
+                                <div><i class="bi bi-envelope text-muted me-1"></i>@customer.Email</div>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            @if (customer.OpenTicketsCount > 0)
+                            {
+                                <span class="badge bg-warning text-dark rounded-pill px-2">@customer.OpenTicketsCount</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-secondary rounded-pill px-2">0</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-light text-dark border rounded-pill px-2">@customer.TotalTicketsCount</span>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1">
+                                <a asp-action="Detail" asp-route-id="@customer.Id" class="btn btn-outline-secondary btn-sm" title="Xem chi tiết">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@customer.Id" class="btn btn-outline-primary btn-sm" title="Chỉnh sửa">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="card-footer bg-transparent border-top py-3 d-flex justify-content-between align-items-center">
+            <div class="text-muted small">
+                Hiển thị trang @Model.Page / @Model.TotalPages (Tổng cộng @Model.TotalCount khách hàng)
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search">Trước</a>
+                    </li>
+                    @for (int p = 1; p <= Model.TotalPages; p++)
+                    {
+                        <li class="page-item @(p == Model.Page ? "active" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@p" asp-route-search="@Model.Search">@p</a>
+                        </li>
+                    }
+                    <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
+</div>

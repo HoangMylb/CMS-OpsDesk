@@ -1,0 +1,153 @@
+@model OpsDesk.Web.ViewModels.Employee.EmployeeListViewModel
+@using OpsDesk.Core.Authorization
+@{
+    ViewData["Title"] = "Nhân viên";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h1 class="h4 fw-bold mb-0"><i class="bi bi-person-badge text-primary me-2"></i>Nhân viên</h1>
+    @if (User.HasClaim("Permission", Permissions.Employee.Create))
+    {
+        <a asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Thêm nhân viên
+        </a>
+    }
+</div>
+
+<!-- Bộ lọc -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Tìm kiếm</label>
+                <input name="search" value="@Model.Search" class="form-control form-control-sm"
+                       placeholder="Tên hoặc email..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Trạng thái</label>
+                <select name="isActive" class="form-select form-select-sm">
+                    <option value="">-- Tất cả --</option>
+                    <option value="true" selected="@(Model.IsActive == true)">Đang hoạt động</option>
+                    <option value="false" selected="@(Model.IsActive == false)">Đã vô hiệu hóa</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="bi bi-search me-1"></i>Lọc
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm w-100">Xóa lọc</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bảng -->
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Họ tên</th>
+                    <th>Email</th>
+                    <th>Phòng ban</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var emp in Model.Items)
+                {
+                    <tr>
+                        <td class="fw-semibold">@emp.FullName</td>
+                        <td class="text-muted">@emp.Email</td>
+                        <td>@(emp.DepartmentName ?? "—")</td>
+                        <td>
+                            @if (emp.RoleName is not null)
+                            {
+                                <span class="badge bg-secondary">@emp.RoleName</span>
+                            }
+                        </td>
+                        <td>
+                            @if (emp.IsActive)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">Hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Vô hiệu</span>
+                            }
+                        </td>
+                        <td class="text-muted small">@emp.CreatedAt.ToString("dd/MM/yyyy")</td>
+                        <td class="text-end">
+                            <div class="d-flex gap-1 justify-content-end">
+                                @if (User.HasClaim("Permission", Permissions.Employee.Update))
+                                {
+                                    <a asp-action="Edit" asp-route-id="@emp.Id"
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                }
+                                @if (User.HasClaim("Permission", Permissions.Employee.Deactivate))
+                                {
+                                    if (emp.IsActive)
+                                    {
+                                        <form asp-action="Deactivate" asp-route-id="@emp.Id" method="post"
+                                              onsubmit="return confirm('Vô hiệu hóa tài khoản @emp.FullName?')">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Vô hiệu hóa">
+                                                <i class="bi bi-person-x"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="Activate" asp-route-id="@emp.Id" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline-success btn-sm" title="Kích hoạt">
+                                                <i class="bi bi-person-check"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Items.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox me-2"></i>Không tìm thấy nhân viên nào.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.TotalPages > 1)
+    {
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                Hiển thị @Model.Items.Count / @Model.TotalCount nhân viên
+            </small>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.Page ? "active" : "")">
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-page="@i"
+                               asp-route-search="@Model.Search"
+                               asp-route-isActive="@Model.IsActive">@i</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    }
+</div>
