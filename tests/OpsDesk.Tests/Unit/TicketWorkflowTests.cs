@@ -10,8 +10,8 @@ public class TicketWorkflowTests
 
     public TicketWorkflowTests()
     {
-        // Kiểm tra logic State Machine không cần kết nối DB
-        _workflowService = new TicketWorkflowService(null!, null!, null!, null!);
+        // Testing State Machine logic without DB dependencies
+        _workflowService = new TicketWorkflowService(null!, null!, null!);
     }
 
     [Theory]

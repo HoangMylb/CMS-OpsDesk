@@ -179,8 +179,72 @@ public class TicketController : Controller
             return View(model);
         }
 
-        TempData["SuccessMessage"] = "Tạo phiếu hỗ trợ thành công!";
+        TempData["SuccessMessage"] = "Ticket created successfully!";
         return RedirectToAction(nameof(Detail), new { id = result.Data });
+    }
+
+    // GET: /Ticket/Edit/5
+    [Authorize(Policy = Permissions.Ticket.Update)]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var canViewAll = (await _authService.AuthorizeAsync(User, Permissions.Ticket.ViewAll)).Succeeded;
+        var ticket = await _ticketService.GetDetailAsync(id, _currentUser.UserId!, canViewAll);
+        if (ticket is null) return NotFound();
+
+        var vm = new EditTicketViewModel
+        {
+            Id = ticket.Id,
+            TicketCode = ticket.TicketCode,
+            CustomerName = ticket.CustomerName,
+            Subject = ticket.Subject,
+            Description = ticket.Description,
+            Priority = ticket.Priority,
+            RowVersionBase64 = Convert.ToBase64String(ticket.RowVersion)
+        };
+
+        return View(vm);
+    }
+
+    // POST: /Ticket/Edit/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = Permissions.Ticket.Update)]
+    public async Task<IActionResult> Edit(int id, EditTicketViewModel model)
+    {
+        if (id != model.Id) return BadRequest();
+
+        if (!ModelState.IsValid)
+            return View(model);
+
+        byte[] rowVersion;
+        try
+        {
+            rowVersion = Convert.FromBase64String(model.RowVersionBase64);
+        }
+        catch
+        {
+            return BadRequest("Invalid concurrency token.");
+        }
+
+        var result = await _ticketService.UpdateTicketAsync(new UpdateTicketRequest(
+            model.Id,
+            model.Subject,
+            model.Description,
+            model.Priority,
+            rowVersion
+        ), _currentUser.UserId!);
+
+        if (!result.Succeeded)
+        {
+            foreach (var err in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, err);
+            }
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = "Ticket updated successfully.";
+        return RedirectToAction(nameof(Detail), new { id = model.Id });
     }
 
     // POST: /Ticket/Assign

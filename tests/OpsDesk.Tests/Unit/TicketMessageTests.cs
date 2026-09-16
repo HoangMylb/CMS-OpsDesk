@@ -10,7 +10,7 @@ public class TicketMessageTests
 
     public TicketMessageTests()
     {
-        _messageService = new TicketMessageService(null!, null!, null!, null!);
+        _messageService = new TicketMessageService(null!, null!, null!);
     }
 
     [Theory]
@@ -24,6 +24,6 @@ public class TicketMessageTests
 
         // Assert
         Assert.False(result.Succeeded);
-        Assert.Contains("không được để trống", result.FirstError);
+        Assert.Contains("cannot be empty", result.FirstError);
     }
 }

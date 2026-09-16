@@ -1,0 +1,64 @@
+@model OpsDesk.Web.ViewModels.Ticket.EditTicketViewModel
+@using OpsDesk.Core.Enums
+@{
+    ViewData["Title"] = $"Edit Ticket: {Model.TicketCode}";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                <a asp-action="Detail" asp-route-id="@Model.Id" class="btn btn-link text-decoration-none p-0 mb-2">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Ticket Details
+                </a>
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h1 class="h5 fw-bold mb-1">Edit Ticket: <span class="font-monospace text-primary">@Model.TicketCode</span></h1>
+                        <p class="text-muted small mb-0">Customer: <span class="fw-semibold">@Model.CustomerName</span></p>
+                    </div>
+                    <span class="badge bg-light text-secondary border">Optimistic Concurrency Protected</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="TicketCode" />
+                    <input type="hidden" asp-for="CustomerName" />
+                    <input type="hidden" asp-for="RowVersionBase64" />
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Subject" class="form-label fw-semibold"></label>
+                        <input asp-for="Subject" class="form-control" autofocus />
+                        <span asp-validation-for="Subject" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Priority" class="form-label fw-semibold"></label>
+                        <select asp-for="Priority" class="form-select" asp-items="Html.GetEnumSelectList<TicketPriority>()"></select>
+                        <span asp-validation-for="Priority" class="text-danger small"></span>
+                        <div class="form-text small">Note: Changing priority will update future SLA expectations but preserves initial commitment record.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label fw-semibold"></label>
+                        <textarea asp-for="Description" class="form-control" rows="6"></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a asp-action="Detail" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

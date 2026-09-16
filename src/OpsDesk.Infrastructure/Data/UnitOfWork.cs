@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using OpsDesk.Core.Data;
+using OpsDesk.Core.Data.Repositories;
+using OpsDesk.Core.Entities;
+using OpsDesk.Infrastructure.Data.Repositories;
 
 namespace OpsDesk.Infrastructure.Data;
 
@@ -9,10 +11,26 @@ public class UnitOfWork : IUnitOfWork
     private readonly ApplicationDbContext _context;
     private bool _disposed;
 
+    private ITicketRepository? _tickets;
+    private ICustomerRepository? _customers;
+    private IAuditLogRepository? _auditLogs;
+    private IRepository<TicketMessage>? _messages;
+    private IRepository<TicketStatusHistory>? _statusHistories;
+    private IRepository<TicketAssignmentHistory>? _assignmentHistories;
+    private IRepository<Department>? _departments;
+
     public UnitOfWork(ApplicationDbContext context)
     {
         _context = context;
     }
+
+    public ITicketRepository Tickets => _tickets ??= new TicketRepository(_context);
+    public ICustomerRepository Customers => _customers ??= new CustomerRepository(_context);
+    public IAuditLogRepository AuditLogs => _auditLogs ??= new AuditLogRepository(_context);
+    public IRepository<TicketMessage> Messages => _messages ??= new Repository<TicketMessage>(_context);
+    public IRepository<TicketStatusHistory> StatusHistories => _statusHistories ??= new Repository<TicketStatusHistory>(_context);
+    public IRepository<TicketAssignmentHistory> AssignmentHistories => _assignmentHistories ??= new Repository<TicketAssignmentHistory>(_context);
+    public IRepository<Department> Departments => _departments ??= new Repository<Department>(_context);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

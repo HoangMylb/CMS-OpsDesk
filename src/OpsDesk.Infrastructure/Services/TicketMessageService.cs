@@ -3,24 +3,20 @@ using Microsoft.Extensions.Logging;
 using OpsDesk.Core.Data;
 using OpsDesk.Core.Entities;
 using OpsDesk.Core.Services;
-using OpsDesk.Infrastructure.Data;
 
 namespace OpsDesk.Infrastructure.Services;
 
 public class TicketMessageService : ITicketMessageService
 {
-    private readonly ApplicationDbContext _db;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuditService _auditService;
     private readonly ILogger<TicketMessageService> _logger;
 
     public TicketMessageService(
-        ApplicationDbContext db,
         IUnitOfWork unitOfWork,
         IAuditService auditService,
         ILogger<TicketMessageService> logger)
     {
-        _db = db;
         _unitOfWork = unitOfWork;
         _auditService = auditService;
         _logger = logger;
@@ -28,11 +24,10 @@ public class TicketMessageService : ITicketMessageService
 
     public async Task<List<TicketMessageDto>> GetMessagesAsync(int ticketId, string currentUserId, bool canViewInternal)
     {
-        var query = _db.TicketMessages
-            .AsNoTracking()
+        var query = _unitOfWork.Messages.Query(asNoTracking: true)
             .Where(m => m.TicketId == ticketId);
 
-        // Bảo mật: Nếu người dùng không có quyền xem ghi chú nội bộ, lọc bỏ ở tầng Database (BR-10)
+        // Security rule: hide internal notes if unauthorized (BR-10)
         if (!canViewInternal)
         {
             query = query.Where(m => !m.IsInternal);
@@ -55,16 +50,16 @@ public class TicketMessageService : ITicketMessageService
 
     public async Task<ServiceResult<int>> AddMessageAsync(AddMessageRequest request, string authorUserId)
     {
-        // Kiểm tra nội dung rỗng (BR-09, UC-TKT-18)
+        // Reject empty messages (BR-09, UC-TKT-18)
         if (string.IsNullOrWhiteSpace(request.Content))
         {
-            return ServiceResult<int>.Failure("Nội dung tin nhắn hoặc ghi chú không được để trống.");
+            return ServiceResult<int>.Failure("Message content cannot be empty or whitespace only.");
         }
 
-        var ticketExists = await _db.Tickets.AnyAsync(t => t.Id == request.TicketId);
+        var ticketExists = await _unitOfWork.Tickets.AnyAsync(t => t.Id == request.TicketId);
         if (!ticketExists)
         {
-            return ServiceResult<int>.Failure("Không tìm thấy ticket.");
+            return ServiceResult<int>.Failure("Ticket not found.");
         }
 
         var message = new TicketMessage
@@ -76,11 +71,10 @@ public class TicketMessageService : ITicketMessageService
             CreatedAt = DateTime.UtcNow
         };
 
-        // Thực thi transaction cực ngắn qua Unit of Work
         await _unitOfWork.ExecuteTransactionAsync(async () =>
         {
-            _db.TicketMessages.Add(message);
-            await _db.SaveChangesAsync();
+            await _unitOfWork.Messages.AddAsync(message);
+            await _unitOfWork.SaveChangesAsync();
 
             await _auditService.LogAsync(
                 authorUserId,

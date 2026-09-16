@@ -169,6 +169,16 @@ else
 // through the specified path, which means our error controllers render proper views.
 app.UseStatusCodePagesWithReExecute("/Home/Error/{0}");
 
+// Security Headers Middleware
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    await next();
+});
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();   // serve wwwroot (Bootstrap, CSS, JS)
 app.UseRouting();

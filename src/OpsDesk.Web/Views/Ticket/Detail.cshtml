@@ -59,8 +59,14 @@
             <h1 class="h4 fw-bold mb-0">@t.Subject</h1>
         </div>
 
-        <!-- Các nút hành động chuyển đổi trạng thái (Workflow Transitions) -->
+        <!-- Action buttons: Edit & Workflow Transitions -->
         <div class="d-flex flex-wrap gap-2">
+            @if (Model.CanUpdate)
+            {
+                <a asp-action="Edit" asp-route-id="@t.Id" class="btn btn-outline-primary btn-sm fw-semibold">
+                    <i class="bi bi-pencil me-1"></i>Chỉnh sửa
+                </a>
+            }
             @if (Model.AllowedTransitions.Contains(TicketStatus.InProgress) && Model.CanUpdate)
             {
                 <form asp-action="TransitionStatus" method="post" class="d-inline">

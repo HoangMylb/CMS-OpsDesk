@@ -1,29 +1,29 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using OpsDesk.Core.Data;
 using OpsDesk.Core.Entities;
 using OpsDesk.Core.Enums;
 using OpsDesk.Core.Services;
-using OpsDesk.Infrastructure.Data;
 
 namespace OpsDesk.Infrastructure.Services;
 
 public class TicketService : ITicketService
 {
-    private readonly ApplicationDbContext _db;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ISlaService _slaService;
     private readonly IAuditService _auditService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<TicketService> _logger;
 
     public TicketService(
-        ApplicationDbContext db,
+        IUnitOfWork unitOfWork,
         ISlaService slaService,
         IAuditService auditService,
         UserManager<ApplicationUser> userManager,
         ILogger<TicketService> logger)
     {
-        _db = db;
+        _unitOfWork = unitOfWork;
         _slaService = slaService;
         _auditService = auditService;
         _userManager = userManager;
@@ -35,74 +35,7 @@ public class TicketService : ITicketService
         string currentUserId,
         bool canViewAll)
     {
-        var query = _db.Tickets.AsNoTracking();
-
-        // 1. Phân quyền: Nếu không có quyền ViewAll (chỉ có ViewAssigned), chỉ xem tickets gán cho mình
-        if (!canViewAll)
-        {
-            query = query.Where(t => t.AssignedToUserId == currentUserId);
-        }
-        else if (!string.IsNullOrEmpty(filter.AssignedToUserId))
-        {
-            query = query.Where(t => t.AssignedToUserId == filter.AssignedToUserId);
-        }
-
-        // 2. Tìm kiếm từ khóa
-        if (!string.IsNullOrWhiteSpace(filter.Search))
-        {
-            var term = filter.Search.Trim();
-            query = query.Where(t =>
-                t.TicketCode.Contains(term) ||
-                t.Subject.Contains(term) ||
-                t.Customer.Name.Contains(term) ||
-                t.Customer.Email.Contains(term));
-        }
-
-        // 3. Lọc theo trạng thái
-        if (filter.Status.HasValue)
-        {
-            query = query.Where(t => t.Status == filter.Status.Value);
-        }
-
-        // 4. Lọc theo độ ưu tiên
-        if (filter.Priority.HasValue)
-        {
-            query = query.Where(t => t.Priority == filter.Priority.Value);
-        }
-
-        // 5. Lọc ticket quá hạn SLA
-        var now = DateTime.UtcNow;
-        if (filter.OverdueOnly == true)
-        {
-            query = query.Where(t =>
-                t.DueAt < now &&
-                t.Status != TicketStatus.Resolved &&
-                t.Status != TicketStatus.Closed);
-        }
-
-        var total = await query.CountAsync();
-
-        var items = await query
-            .OrderByDescending(t => t.CreatedAt)
-            .Skip((filter.Page - 1) * filter.PageSize)
-            .Take(filter.PageSize)
-            .Select(t => new TicketListItem(
-                t.Id,
-                t.TicketCode,
-                t.Subject,
-                t.CustomerId,
-                t.Customer.Name,
-                t.Priority,
-                t.Status,
-                t.AssignedToUserId,
-                t.AssignedTo != null ? t.AssignedTo.FullName : null,
-                t.CreatedAt,
-                t.DueAt,
-                now > t.DueAt && t.Status != TicketStatus.Resolved && t.Status != TicketStatus.Closed
-            ))
-            .ToListAsync();
-
-        return (items, total);
+        return await _unitOfWork.Tickets.GetPagedAsync(filter, currentUserId, canViewAll);
     }
 
     public async Task<TicketDetailDto?> GetDetailAsync(
@@ -110,37 +43,22 @@ public class TicketService : ITicketService
         string currentUserId,
         bool canViewAll)
     {
-        var ticket = await _db.Tickets
-            .AsNoTracking()
-            .Include(t => t.Customer)
-            .Include(t => t.AssignedTo)
-            .Include(t => t.CreatedBy)
-            .Include(t => t.StatusHistory)
-                .ThenInclude(h => h.ChangedBy)
-            .Include(t => t.AssignmentHistory)
-                .ThenInclude(h => h.ChangedBy)
-            .Include(t => t.AssignmentHistory)
-                .ThenInclude(h => h.PreviousAssignee)
-            .Include(t => t.AssignmentHistory)
-                .ThenInclude(h => h.NewAssignee)
-            .FirstOrDefaultAsync(t => t.Id == id);
-
+        var ticket = await _unitOfWork.Tickets.GetDetailByIdAsync(id);
         if (ticket is null) return null;
 
-        // Kiểm tra quyền truy cập theo tài nguyên (Resource-based Authorization)
+        // Resource-based authorization check
         if (!canViewAll && ticket.AssignedToUserId != currentUserId)
         {
-            return null; // Không có quyền xem ticket của người khác
+            return null;
         }
 
-        var now = DateTime.UtcNow;
         var isOverdue = _slaService.IsOverdue(ticket.DueAt, ticket.Status);
 
         var statusHistory = ticket.StatusHistory
             .OrderByDescending(h => h.ChangedAt)
             .Select(h => new TicketStatusHistoryDto(
                 h.Id,
-                h.ChangedBy != null ? h.ChangedBy.FullName : "Hệ thống",
+                h.ChangedBy != null ? h.ChangedBy.FullName : "System",
                 h.FromStatus,
                 h.ToStatus,
                 h.ChangedAt,
@@ -153,7 +71,7 @@ public class TicketService : ITicketService
                 h.Id,
                 h.PreviousAssignee != null ? h.PreviousAssignee.FullName : null,
                 h.NewAssignee != null ? h.NewAssignee.FullName : null,
-                h.ChangedBy != null ? h.ChangedBy.FullName : "Hệ thống",
+                h.ChangedBy != null ? h.ChangedBy.FullName : "System",
                 h.ChangedAt
             )).ToList();
 
@@ -187,9 +105,9 @@ public class TicketService : ITicketService
         CreateTicketRequest request,
         string createdByUserId)
     {
-        var customer = await _db.Customers.FindAsync(request.CustomerId);
+        var customer = await _unitOfWork.Customers.GetByIdAsync(request.CustomerId);
         if (customer is null)
-            return ServiceResult<int>.Failure("Không tìm thấy khách hàng.");
+            return ServiceResult<int>.Failure("Customer not found.");
 
         var now = DateTime.UtcNow;
         var dueAt = _slaService.CalculateDueAt(now, request.Priority);
@@ -209,37 +127,89 @@ public class TicketService : ITicketService
             UpdatedAt = now
         };
 
-        // Ghi nhận lịch sử trạng thái ban đầu
         ticket.StatusHistory.Add(new TicketStatusHistory
         {
             FromStatus = TicketStatus.New,
             ToStatus = TicketStatus.New,
             ChangedByUserId = createdByUserId,
             ChangedAt = now,
-            Notes = "Khởi tạo phiếu hỗ trợ"
+            Notes = "Initial ticket created."
         });
 
-        _db.Tickets.Add(ticket);
-        await _db.SaveChangesAsync();
+        await _unitOfWork.ExecuteTransactionAsync(async () =>
+        {
+            await _unitOfWork.Tickets.AddAsync(ticket);
+            await _unitOfWork.SaveChangesAsync();
 
-        await _auditService.LogAsync(
-            createdByUserId,
-            "TicketCreated",
-            "Ticket",
-            ticket.Id.ToString(),
-            newValues: new
+            await _auditService.LogAsync(
+                createdByUserId,
+                "TicketCreated",
+                "Ticket",
+                ticket.Id.ToString(),
+                newValues: new
+                {
+                    ticket.TicketCode,
+                    ticket.CustomerId,
+                    ticket.Subject,
+                    ticket.Priority,
+                    ticket.DueAt
+                });
+        });
+
+        _logger.LogInformation("Ticket {TicketCode} created by user {UserId}", ticketCode, createdByUserId);
+        return ServiceResult<int>.Success(ticket.Id);
+    }
+
+    public async Task<ServiceResult> UpdateTicketAsync(
+        UpdateTicketRequest request,
+        string currentUserId)
+    {
+        var ticket = await _unitOfWork.Tickets.GetByIdAsync(request.Id);
+        if (ticket is null)
+            return ServiceResult.Failure("Ticket not found.");
+
+        var oldValues = new
+        {
+            ticket.Subject,
+            ticket.Description,
+            ticket.Priority
+        };
+
+        ticket.Subject = request.Subject.Trim();
+        ticket.Description = request.Description.Trim();
+        ticket.Priority = request.Priority;
+        ticket.UpdatedAt = DateTime.UtcNow;
+
+        // Set original RowVersion for EF Core optimistic concurrency check
+        _unitOfWork.Tickets.Update(ticket);
+
+        try
+        {
+            await _unitOfWork.ExecuteTransactionAsync(async () =>
             {
-                ticket.TicketCode,
-                ticket.CustomerId,
-                ticket.Subject,
-                ticket.Priority,
-                ticket.DueAt
+                await _unitOfWork.SaveChangesAsync();
+
+                await _auditService.LogAsync(
+                    currentUserId,
+                    "TicketUpdated",
+                    "Ticket",
+                    ticket.Id.ToString(),
+                    oldValues: oldValues,
+                    newValues: new
+                    {
+                        ticket.Subject,
+                        ticket.Description,
+                        ticket.Priority
+                    });
             });
 
-        _logger.LogInformation("Ticket {TicketCode} created for customer {CustomerId} by user {UserId}",
-            ticketCode, request.CustomerId, createdByUserId);
-
-        return ServiceResult<int>.Success(ticket.Id);
+            return ServiceResult.Success();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogWarning(ex, "Concurrency conflict detected when updating ticket {TicketId}", request.Id);
+            return ServiceResult.Failure("Concurrency conflict: This ticket was modified by another user. Please reload the page to inspect the latest changes before saving.");
+        }
     }
 
     public async Task<ServiceResult> AssignTicketAsync(
@@ -247,72 +217,72 @@ public class TicketService : ITicketService
         string? newAssigneeId,
         string changedByUserId)
     {
-        var ticket = await _db.Tickets.FindAsync(ticketId);
+        var ticket = await _unitOfWork.Tickets.GetByIdAsync(ticketId);
         if (ticket is null)
-            return ServiceResult.Failure("Không tìm thấy ticket.");
+            return ServiceResult.Failure("Ticket not found.");
 
         if (string.IsNullOrWhiteSpace(newAssigneeId))
-            return ServiceResult.Failure("Vui lòng chọn nhân viên phụ trách hợp lệ.");
+            return ServiceResult.Failure("Please select a valid employee for assignment.");
 
-        // Kiểm tra người nhận có hợp lệ và đang hoạt động không (BR-03, BR-08)
         var newAssignee = await _userManager.FindByIdAsync(newAssigneeId);
         if (newAssignee is null)
-            return ServiceResult.Failure("Nhân viên được chọn không tồn tại.");
+            return ServiceResult.Failure("Selected employee does not exist.");
 
         if (!newAssignee.IsActive)
-            return ServiceResult.Failure("Không thể phân công ticket cho nhân viên đã bị vô hiệu hóa.");
+            return ServiceResult.Failure("Cannot assign ticket to a deactivated employee.");
 
         var oldAssigneeId = ticket.AssignedToUserId;
         if (oldAssigneeId == newAssigneeId)
-            return ServiceResult.Success(); // Không thay đổi
+            return ServiceResult.Success();
 
         var now = DateTime.UtcNow;
 
-        // Ghi lại lịch sử phân công
-        _db.TicketAssignmentHistories.Add(new TicketAssignmentHistory
+        await _unitOfWork.ExecuteTransactionAsync(async () =>
         {
-            TicketId = ticket.Id,
-            PreviousAssigneeId = oldAssigneeId,
-            NewAssigneeId = newAssigneeId,
-            ChangedByUserId = changedByUserId,
-            ChangedAt = now
-        });
-
-        ticket.AssignedToUserId = newAssigneeId;
-        ticket.UpdatedAt = now;
-
-        // Nếu ticket đang ở trạng thái New và được gán cho một agent, tự động chuyển sang Assigned
-        if (ticket.Status == TicketStatus.New && !string.IsNullOrEmpty(newAssigneeId))
-        {
-            ticket.Status = TicketStatus.Assigned;
-            _db.TicketStatusHistories.Add(new TicketStatusHistory
+            await _unitOfWork.AssignmentHistories.AddAsync(new TicketAssignmentHistory
             {
                 TicketId = ticket.Id,
-                FromStatus = TicketStatus.New,
-                ToStatus = TicketStatus.Assigned,
+                PreviousAssigneeId = oldAssigneeId,
+                NewAssigneeId = newAssigneeId,
                 ChangedByUserId = changedByUserId,
-                ChangedAt = now,
-                Notes = $"Tự động chuyển trạng thái khi phân công cho {newAssignee!.FullName}"
+                ChangedAt = now
             });
-        }
 
-        await _db.SaveChangesAsync();
+            ticket.AssignedToUserId = newAssigneeId;
+            ticket.UpdatedAt = now;
 
-        await _auditService.LogAsync(
-            changedByUserId,
-            "TicketAssigned",
-            "Ticket",
-            ticket.Id.ToString(),
-            oldValues: new { AssignedToUserId = oldAssigneeId },
-            newValues: new { AssignedToUserId = newAssigneeId });
+            if (ticket.Status == TicketStatus.New)
+            {
+                ticket.Status = TicketStatus.Assigned;
+                await _unitOfWork.StatusHistories.AddAsync(new TicketStatusHistory
+                {
+                    TicketId = ticket.Id,
+                    FromStatus = TicketStatus.New,
+                    ToStatus = TicketStatus.Assigned,
+                    ChangedByUserId = changedByUserId,
+                    ChangedAt = now,
+                    Notes = $"Automatic status transition on assignment to {newAssignee.FullName}"
+                });
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+
+            await _auditService.LogAsync(
+                changedByUserId,
+                "TicketAssigned",
+                "Ticket",
+                ticket.Id.ToString(),
+                oldValues: new { AssignedToUserId = oldAssigneeId },
+                newValues: new { AssignedToUserId = newAssigneeId });
+        });
 
         return ServiceResult.Success();
     }
 
     public async Task<List<CustomerSelectDto>> GetCustomersForSelectAsync()
     {
-        return await _db.Customers
-            .AsNoTracking()
+        return await _unitOfWork.Customers
+            .Query(asNoTracking: true)
             .OrderBy(c => c.Name)
             .Select(c => new CustomerSelectDto(c.Id, c.Name, c.Email, c.Company))
             .ToListAsync();
@@ -331,13 +301,7 @@ public class TicketService : ITicketService
     private async Task<string> GenerateTicketCodeAsync(int year)
     {
         var prefix = $"TKT-{year}-";
-
-        // Lấy ticket mới nhất trong năm hiện tại để tính sequence
-        var latestCode = await _db.Tickets
-            .Where(t => t.TicketCode.StartsWith(prefix))
-            .OrderByDescending(t => t.TicketCode)
-            .Select(t => t.TicketCode)
-            .FirstOrDefaultAsync();
+        var latestCode = await _unitOfWork.Tickets.GetLatestTicketCodeByYearPrefixAsync(prefix);
 
         var seq = 1;
         if (latestCode != null && latestCode.Length > prefix.Length)

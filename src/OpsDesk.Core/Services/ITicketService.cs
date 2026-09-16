@@ -78,6 +78,14 @@ public record CreateTicketRequest(
     TicketPriority Priority
 );
 
+public record UpdateTicketRequest(
+    int Id,
+    string Subject,
+    string Description,
+    TicketPriority Priority,
+    byte[] RowVersion
+);
+
 public record CustomerSelectDto(
     int Id,
     string Name,
@@ -106,6 +114,10 @@ public interface ITicketService
     Task<ServiceResult<int>> CreateAsync(
         CreateTicketRequest request,
         string createdByUserId);
+
+    Task<ServiceResult> UpdateTicketAsync(
+        UpdateTicketRequest request,
+        string currentUserId);
 
     Task<ServiceResult> AssignTicketAsync(
         int ticketId,

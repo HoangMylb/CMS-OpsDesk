@@ -1,21 +1,18 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OpsDesk.Core.Data;
 using OpsDesk.Core.Entities;
 using OpsDesk.Core.Enums;
 using OpsDesk.Core.Services;
-using OpsDesk.Infrastructure.Data;
 
 namespace OpsDesk.Infrastructure.Services;
 
 public class TicketWorkflowService : ITicketWorkflowService
 {
-    private readonly ApplicationDbContext _db;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuditService _auditService;
     private readonly ILogger<TicketWorkflowService> _logger;
 
-    // Bảng định nghĩa chuyển đổi trạng thái hợp lệ
+    // State machine allowed transitions
     private static readonly Dictionary<TicketStatus, List<TicketStatus>> AllowedTransitions = new()
     {
         { TicketStatus.New, [TicketStatus.Assigned] },
@@ -27,12 +24,10 @@ public class TicketWorkflowService : ITicketWorkflowService
     };
 
     public TicketWorkflowService(
-        ApplicationDbContext db,
         IUnitOfWork unitOfWork,
         IAuditService auditService,
         ILogger<TicketWorkflowService> logger)
     {
-        _db = db;
         _unitOfWork = unitOfWork;
         _auditService = auditService;
         _logger = logger;
@@ -51,24 +46,22 @@ public class TicketWorkflowService : ITicketWorkflowService
 
     public async Task<ServiceResult> TransitionAsync(StatusTransitionRequest request, string currentUserId)
     {
-        var ticket = await _db.Tickets.FindAsync(request.TicketId);
+        var ticket = await _unitOfWork.Tickets.GetByIdAsync(request.TicketId);
         if (ticket is null)
-            return ServiceResult.Failure("Không tìm thấy ticket.");
+            return ServiceResult.Failure("Ticket not found.");
 
         var currentStatus = ticket.Status;
         var targetStatus = request.TargetStatus;
 
         if (!CanTransition(currentStatus, targetStatus))
         {
-            return ServiceResult.Failure($"Không thể chuyển trạng thái từ '{currentStatus}' sang '{targetStatus}'. Bước nhảy này không hợp lệ.");
+            return ServiceResult.Failure($"Invalid transition from '{currentStatus}' to '{targetStatus}'.");
         }
 
         var now = DateTime.UtcNow;
 
-        // Thực thi transaction cực ngắn qua Unit of Work
         await _unitOfWork.ExecuteTransactionAsync(async () =>
         {
-            // 1. Cập nhật các mốc thời gian đặc biệt
             if (targetStatus == TicketStatus.Resolved)
             {
                 ticket.ResolvedAt = now;
@@ -79,13 +72,12 @@ public class TicketWorkflowService : ITicketWorkflowService
             }
             else if (targetStatus == TicketStatus.Reopened)
             {
-                ticket.ClosedAt = null; // Mở lại thì hủy mốc đóng
+                ticket.ClosedAt = null;
             }
 
             ticket.Status = targetStatus;
             ticket.UpdatedAt = now;
 
-            // 2. Thêm bản ghi bất biến vào TicketStatusHistory
             var history = new TicketStatusHistory
             {
                 TicketId = ticket.Id,
@@ -95,9 +87,9 @@ public class TicketWorkflowService : ITicketWorkflowService
                 ChangedAt = now,
                 Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim()
             };
-            _db.TicketStatusHistories.Add(history);
+            await _unitOfWork.StatusHistories.AddAsync(history);
+            await _unitOfWork.SaveChangesAsync();
 
-            // 3. Ghi nhận Audit Log
             await _auditService.LogAsync(
                 currentUserId,
                 "TicketStatusChanged",
