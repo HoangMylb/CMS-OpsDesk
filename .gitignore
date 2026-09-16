@@ -1,0 +1,25 @@
+## .NET build artifacts
+bin/
+obj/
+
+## User-specific Visual Studio / Rider files
+*.user
+.vs/
+.idea/
+*.suo
+
+## NuGet
+*.nupkg
+.nuget/
+
+## Secrets — NEVER commit these
+appsettings.Production.json
+**/secrets.json
+
+## EF Core migrations snapshot (keep the Migrations folder, not the designer files)
+
+## macOS
+.DS_Store
+
+## Logs
+*.log
