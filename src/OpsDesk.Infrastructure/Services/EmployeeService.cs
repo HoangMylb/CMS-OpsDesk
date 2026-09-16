@@ -39,14 +39,14 @@ public class EmployeeService : IEmployeeService
         // Xây dựng query bằng LINQ — filter tại database, không load toàn bộ bảng vào memory
         // Dùng LEFT JOIN để lấy Department và Role trong một query duy nhất
         var query =
-            from user in _db.Users
-            join dept in _db.Departments
+            from user in _db.Users.AsNoTracking()
+            join dept in _db.Departments.AsNoTracking()
                 on user.DepartmentId equals dept.Id into depts
             from dept in depts.DefaultIfEmpty()
-            join userRole in _db.UserRoles
+            join userRole in _db.UserRoles.AsNoTracking()
                 on user.Id equals userRole.UserId into userRoles
             from userRole in userRoles.DefaultIfEmpty()
-            join role in _db.Roles
+            join role in _db.Roles.AsNoTracking()
                 on userRole.RoleId equals role.Id into roles
             from role in roles.DefaultIfEmpty()
             select new { user, dept, role };
@@ -89,6 +89,7 @@ public class EmployeeService : IEmployeeService
     public async Task<ApplicationUser?> GetByIdAsync(string id)
     {
         return await _db.Users
+            .AsNoTracking()
             .Include(u => u.Department)
             .FirstOrDefaultAsync(u => u.Id == id);
     }
@@ -98,10 +99,10 @@ public class EmployeeService : IEmployeeService
     // ----------------------------------------------------------------
 
     public async Task<List<Department>> GetAllDepartmentsAsync()
-        => await _db.Departments.OrderBy(d => d.Name).ToListAsync();
+        => await _db.Departments.AsNoTracking().OrderBy(d => d.Name).ToListAsync();
 
     public async Task<List<IdentityRole>> GetAllRolesAsync()
-        => await _roleManager.Roles.OrderBy(r => r.Name).ToListAsync();
+        => await _roleManager.Roles.AsNoTracking().OrderBy(r => r.Name).ToListAsync();
 
     public async Task<string?> GetCurrentRoleAsync(string userId)
     {

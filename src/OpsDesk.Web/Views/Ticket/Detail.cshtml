@@ -51,12 +51,48 @@
                 }
                 @if (t.IsOverdue)
                 {
-                    <span class="badge bg-danger animate__animated animate__pulse animate__infinite">
+                    <span class="badge bg-danger">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i>QUÁ HẠN SLA
                     </span>
                 }
             </div>
             <h1 class="h4 fw-bold mb-0">@t.Subject</h1>
+        </div>
+
+        <!-- Các nút hành động chuyển đổi trạng thái (Workflow Transitions) -->
+        <div class="d-flex flex-wrap gap-2">
+            @if (Model.AllowedTransitions.Contains(TicketStatus.InProgress) && Model.CanUpdate)
+            {
+                <form asp-action="TransitionStatus" method="post" class="d-inline">
+                    <input type="hidden" name="TicketId" value="@t.Id" />
+                    <input type="hidden" name="TargetStatus" value="@TicketStatus.InProgress" />
+                    <button type="submit" class="btn btn-warning btn-sm fw-semibold">
+                        <i class="bi bi-play-fill me-1"></i>Bắt đầu xử lý
+                    </button>
+                </form>
+            }
+            @if (Model.AllowedTransitions.Contains(TicketStatus.Resolved) && Model.CanResolve)
+            {
+                <button type="button" class="btn btn-success btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalResolve">
+                    <i class="bi bi-check-circle me-1"></i>Đánh dấu giải quyết
+                </button>
+            }
+            @if (Model.AllowedTransitions.Contains(TicketStatus.Closed) && Model.CanClose)
+            {
+                <form asp-action="TransitionStatus" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn đóng ticket này?');">
+                    <input type="hidden" name="TicketId" value="@t.Id" />
+                    <input type="hidden" name="TargetStatus" value="@TicketStatus.Closed" />
+                    <button type="submit" class="btn btn-secondary btn-sm fw-semibold">
+                        <i class="bi bi-lock me-1"></i>Đóng ticket
+                    </button>
+                </form>
+            }
+            @if (Model.AllowedTransitions.Contains(TicketStatus.Reopened) && Model.CanReopen)
+            {
+                <button type="button" class="btn btn-danger btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalReopen">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Mở lại ticket
+                </button>
+            }
         </div>
     </div>
 </div>
@@ -78,15 +114,77 @@
 }
 
 <div class="row g-4">
-    <!-- Cột trái: Nội dung chính & Lịch sử -->
+    <!-- Cột trái: Nội dung chính, Tin nhắn phản hồi & Lịch sử -->
     <div class="col-lg-8">
-        <!-- Chi tiết mô tả -->
+        <!-- Chi tiết mô tả ban đầu -->
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-transparent border-bottom py-3">
-                <h2 class="h6 fw-bold mb-0">Nội dung yêu cầu</h2>
+                <h2 class="h6 fw-bold mb-0">Nội dung yêu cầu từ khách hàng</h2>
             </div>
             <div class="card-body">
                 <div class="p-3 bg-light rounded" style="white-space: pre-wrap;">@t.Description</div>
+            </div>
+        </div>
+
+        <!-- Trao đổi tin nhắn & Ghi chú nội bộ -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
+                <h2 class="h6 fw-bold mb-0">
+                    <i class="bi bi-chat-dots me-1"></i>Trao đổi & Ghi chú nội bộ
+                </h2>
+                <span class="badge bg-secondary-subtle text-secondary">@Model.Messages.Count tin nhắn</span>
+            </div>
+            <div class="card-body">
+                <!-- Danh sách tin nhắn -->
+                <div class="d-flex flex-column gap-3 mb-4">
+                    @if (Model.Messages.Count == 0)
+                    {
+                        <div class="text-center py-4 text-muted small fst-italic">
+                            Chưa có trao đổi nào. Hãy là người đầu tiên phản hồi yêu cầu này.
+                        </div>
+                    }
+                    @foreach (var msg in Model.Messages)
+                    {
+                        <div class="p-3 rounded border @(msg.IsInternal ? "bg-warning-subtle border-warning" : "bg-light")">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-bold @(msg.IsCurrentUserAuthor ? "text-primary" : "text-dark")">@msg.AuthorName</span>
+                                    @if (msg.IsInternal)
+                                    {
+                                        <span class="badge bg-warning text-dark border border-warning">
+                                            <i class="bi bi-eye-slash-fill me-1"></i>Ghi chú nội bộ
+                                        </span>
+                                    }
+                                </div>
+                                <span class="text-muted small font-monospace">@msg.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
+                            <div style="white-space: pre-wrap;" class="small">@msg.Content</div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Form gửi phản hồi mới -->
+                <div class="border-top pt-3">
+                    <form asp-action="AddMessage" method="post">
+                        <input type="hidden" name="TicketId" value="@t.Id" />
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Viết phản hồi / ghi chú mới:</label>
+                            <textarea name="Content" class="form-control form-control-sm" rows="3" 
+                                      placeholder="Nhập nội dung xử lý, ghi chú nội bộ hoặc cập nhật tiến độ..."></textarea>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="IsInternal" value="true" id="checkInternal">
+                                <label class="form-check-label small fw-semibold text-warning-emphasis" for="checkInternal">
+                                    <i class="bi bi-lock-fill me-1"></i>Đánh dấu là Ghi chú nội bộ (Chỉ nhân viên xem được)
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-send me-1"></i>Gửi phản hồi
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -98,7 +196,7 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0">
+                    <table class="table table-sm align-middle mb-0 small">
                         <thead class="table-light">
                             <tr>
                                 <th>Thời gian</th>
@@ -111,14 +209,14 @@
                             @foreach (var h in t.StatusHistory)
                             {
                                 <tr>
-                                    <td class="small text-muted">@h.ChangedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td class="text-muted">@h.ChangedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                                     <td>
                                         <span class="badge bg-light text-secondary border">@h.FromStatus</span>
                                         <i class="bi bi-arrow-right mx-1 text-muted small"></i>
                                         <span class="badge bg-primary-subtle text-primary">@h.ToStatus</span>
                                     </td>
-                                    <td class="small fw-semibold">@h.ChangedByName</td>
-                                    <td class="small text-muted">@(h.Notes ?? "—")</td>
+                                    <td class="fw-semibold">@h.ChangedByName</td>
+                                    <td class="text-muted">@(h.Notes ?? "—")</td>
                                 </tr>
                             }
                         </tbody>
@@ -135,7 +233,7 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0">
+                    <table class="table table-sm align-middle mb-0 small">
                         <thead class="table-light">
                             <tr>
                                 <th>Thời gian</th>
@@ -154,10 +252,10 @@
                             @foreach (var a in t.AssignmentHistory)
                             {
                                 <tr>
-                                    <td class="small text-muted">@a.ChangedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td class="small">@(a.PreviousAssigneeName ?? "Chưa phân công")</td>
-                                    <td class="small fw-semibold text-primary">@(a.NewAssigneeName ?? "Gỡ phân công")</td>
-                                    <td class="small text-muted">@a.ChangedByName</td>
+                                    <td class="text-muted">@a.ChangedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@(a.PreviousAssigneeName ?? "Chưa phân công")</td>
+                                    <td class="fw-semibold text-primary">@(a.NewAssigneeName ?? "Gỡ phân công")</td>
+                                    <td class="text-muted">@a.ChangedByName</td>
                                 </tr>
                             }
                         </tbody>
@@ -169,7 +267,7 @@
 
     <!-- Cột phải: Thông tin metadata & Phân công -->
     <div class="col-lg-4">
-        <!-- Card Phân công nhân viên (Phase 9) -->
+        <!-- Card Phân công nhân viên -->
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-transparent border-bottom py-3">
                 <h2 class="h6 fw-bold mb-0">
@@ -198,7 +296,7 @@
                         <div class="mb-3">
                             <label class="form-label small fw-semibold text-muted">Chọn nhân viên phụ trách</label>
                             <select name="AssigneeId" class="form-select form-select-sm" asp-items="Model.ActiveAgentOptions"></select>
-                            <div class="form-text small">Hệ thống chỉ cho phép phân công cho nhân viên đang hoạt động (Active).</div>
+                            <div class="form-text small">Chỉ nhân viên đang hoạt động (Active) mới được phép nhận ticket.</div>
                         </div>
                         <button type="submit" class="btn btn-primary btn-sm w-100">
                             <i class="bi bi-person-check me-1"></i>Cập nhật phân công
@@ -279,6 +377,60 @@
                     Xem hồ sơ khách hàng
                 </a>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Giải quyết Ticket -->
+<div class="modal fade" id="modalResolve" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="TransitionStatus" method="post">
+                <input type="hidden" name="TicketId" value="@t.Id" />
+                <input type="hidden" name="TargetStatus" value="@TicketStatus.Resolved" />
+                <div class="modal-header">
+                    <h5 class="modal-title h6 fw-bold">Xác nhận giải quyết Ticket</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Ghi chú giải pháp xử lý:</label>
+                        <textarea name="Notes" class="form-control form-control-sm" rows="3" 
+                                  placeholder="Mô tả tóm tắt giải pháp đã áp dụng để hỗ trợ khách hàng..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-success btn-sm">Xác nhận Giải quyết</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Mở lại Ticket -->
+<div class="modal fade" id="modalReopen" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="TransitionStatus" method="post">
+                <input type="hidden" name="TicketId" value="@t.Id" />
+                <input type="hidden" name="TargetStatus" value="@TicketStatus.Reopened" />
+                <div class="modal-header">
+                    <h5 class="modal-title h6 fw-bold">Xác nhận mở lại Ticket</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Lý do mở lại:</label>
+                        <textarea name="Notes" class="form-control form-control-sm" rows="3" 
+                                  placeholder="Ví dụ: Khách hàng báo sự cố tái diễn sau khi cập nhật..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Xác nhận Mở lại</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

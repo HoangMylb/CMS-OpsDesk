@@ -71,6 +71,24 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.SameSite = SameSiteMode.Strict; // CSRF protection
 });
 
+// Cấu hình JWT Bearer song song cho các API client / Mobile apps
+builder.Services.AddAuthentication()
+    .AddJwtBearer(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme, options =>
+    {
+        var jwtKey = builder.Configuration["Jwt:Key"] ?? "OpsDeskSecretSecurityKeyForJwtAuthentication2026!@#$%^OpsDeskSuperSecretKey";
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "OpsDesk",
+            ValidAudience = builder.Configuration["Jwt:Audience"] ?? "OpsDeskClients",
+            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
 // ============================================================
 // AUTHORIZATION — Policy-based with dynamic permission policies
 // ============================================================
@@ -85,20 +103,31 @@ builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler
 builder.Services.AddAuthorization();
 
 // ============================================================
-// APPLICATION SERVICES
+// APPLICATION SERVICES & CACHE & UNIT OF WORK
 // ============================================================
 
+builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<DatabaseSeeder>();
 
-// Business services
+// Unit of Work pattern (Transaction boundary management)
+builder.Services.AddScoped<OpsDesk.Core.Data.IUnitOfWork, OpsDesk.Infrastructure.Data.UnitOfWork>();
+
+// Cache & JWT Token services
+builder.Services.AddScoped<OpsDesk.Core.Services.ICacheService, OpsDesk.Infrastructure.Services.MemoryCacheService>();
+builder.Services.AddScoped<OpsDesk.Core.Services.IJwtService, OpsDesk.Infrastructure.Services.JwtService>();
+
+// Domain Business services
 builder.Services.AddScoped<OpsDesk.Core.Services.IAuditService, OpsDesk.Infrastructure.Services.AuditService>();
 builder.Services.AddScoped<OpsDesk.Core.Services.IEmployeeService, OpsDesk.Infrastructure.Services.EmployeeService>();
 builder.Services.AddScoped<OpsDesk.Core.Services.IRoleService, OpsDesk.Infrastructure.Services.RoleService>();
 builder.Services.AddScoped<OpsDesk.Core.Services.ICustomerService, OpsDesk.Infrastructure.Services.CustomerService>();
 builder.Services.AddScoped<OpsDesk.Core.Services.ISlaService, OpsDesk.Infrastructure.Services.SlaService>();
 builder.Services.AddScoped<OpsDesk.Core.Services.ITicketService, OpsDesk.Infrastructure.Services.TicketService>();
+builder.Services.AddScoped<OpsDesk.Core.Services.ITicketWorkflowService, OpsDesk.Infrastructure.Services.TicketWorkflowService>();
+builder.Services.AddScoped<OpsDesk.Core.Services.ITicketMessageService, OpsDesk.Infrastructure.Services.TicketMessageService>();
+builder.Services.AddScoped<OpsDesk.Core.Services.IDashboardService, OpsDesk.Infrastructure.Services.DashboardService>();
 
 // ============================================================
 // MVC

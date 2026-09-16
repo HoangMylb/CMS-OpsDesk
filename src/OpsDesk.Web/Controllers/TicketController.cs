@@ -13,15 +13,21 @@ namespace OpsDesk.Web.Controllers;
 public class TicketController : Controller
 {
     private readonly ITicketService _ticketService;
+    private readonly ITicketWorkflowService _workflowService;
+    private readonly ITicketMessageService _messageService;
     private readonly ICurrentUserService _currentUser;
     private readonly IAuthorizationService _authService;
 
     public TicketController(
         ITicketService ticketService,
+        ITicketWorkflowService workflowService,
+        ITicketMessageService messageService,
         ICurrentUserService currentUser,
         IAuthorizationService authService)
     {
         _ticketService = ticketService;
+        _workflowService = workflowService;
+        _messageService = messageService;
         _currentUser = currentUser;
         _authService = authService;
     }
@@ -38,7 +44,6 @@ public class TicketController : Controller
         var canViewAll = (await _authService.AuthorizeAsync(User, Permissions.Ticket.ViewAll)).Succeeded;
         var canViewAssigned = (await _authService.AuthorizeAsync(User, Permissions.Ticket.ViewAssigned)).Succeeded;
 
-        // Nếu không có cả 2 quyền thì từ chối truy cập
         if (!canViewAll && !canViewAssigned)
             return Forbid();
 
@@ -95,7 +100,6 @@ public class TicketController : Controller
         var ticket = await _ticketService.GetDetailAsync(id, _currentUser.UserId!, canViewAll);
         if (ticket is null)
         {
-            // Kiểm tra xem ticket có tồn tại không để trả về NotFound hay Forbid
             return NotFound();
         }
 
@@ -107,18 +111,28 @@ public class TicketController : Controller
 
         var agents = await _ticketService.GetActiveAgentsForAssignmentAsync();
         var agentOptions = agents.Select(a => new SelectListItem(a.FullName, a.Id, a.Id == ticket.AssignedToUserId)).ToList();
-        agentOptions.Insert(0, new SelectListItem("-- Chưa phân công --", ""));
+        agentOptions.Insert(0, new SelectListItem("-- Chọn nhân viên phụ trách --", ""));
+
+        // Lấy tin nhắn (tất cả nhân viên được xem ghi chú nội bộ, hoặc tùy chính sách)
+        var messages = await _messageService.GetMessagesAsync(ticket.Id, _currentUser.UserId!, canViewInternal: true);
+
+        // Lấy các bước chuyển trạng thái hợp lệ
+        var allowedTransitions = _workflowService.GetAllowedTransitions(ticket.Status);
 
         var vm = new TicketDetailViewModel
         {
             Ticket = ticket,
             SelectedAssigneeId = ticket.AssignedToUserId,
             ActiveAgentOptions = agentOptions,
+            Messages = messages,
+            NewMessage = new AddTicketMessageViewModel { TicketId = ticket.Id },
+            AllowedTransitions = allowedTransitions,
             CanAssign = canAssign,
             CanUpdate = canUpdate,
             CanResolve = canResolve,
             CanClose = canClose,
-            CanReopen = canReopen
+            CanReopen = canReopen,
+            CanAddInternalNote = true
         };
 
         return View(vm);
@@ -185,6 +199,77 @@ public class TicketController : Controller
         else
         {
             TempData["SuccessMessage"] = "Cập nhật phân công nhân viên thành công.";
+        }
+
+        return RedirectToAction(nameof(Detail), new { id = model.TicketId });
+    }
+
+    // POST: /Ticket/TransitionStatus
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> TransitionStatus(TransitionTicketStatusViewModel model)
+    {
+        // Kiểm tra quyền tương ứng với trạng thái mục tiêu
+        var target = model.TargetStatus;
+        string? requiredPolicy = target switch
+        {
+            TicketStatus.InProgress => Permissions.Ticket.Update,
+            TicketStatus.Resolved   => Permissions.Ticket.Resolve,
+            TicketStatus.Closed     => Permissions.Ticket.Close,
+            TicketStatus.Reopened   => Permissions.Ticket.Reopen,
+            _                       => null
+        };
+
+        if (requiredPolicy != null)
+        {
+            var authResult = await _authService.AuthorizeAsync(User, requiredPolicy);
+            if (!authResult.Succeeded)
+            {
+                TempData["ErrorMessage"] = $"Bạn không có quyền thực hiện thao tác '{target}'.";
+                return RedirectToAction(nameof(Detail), new { id = model.TicketId });
+            }
+        }
+
+        var result = await _workflowService.TransitionAsync(
+            new StatusTransitionRequest(model.TicketId, model.TargetStatus, model.Notes),
+            _currentUser.UserId!);
+
+        if (!result.Succeeded)
+        {
+            TempData["ErrorMessage"] = string.Join("; ", result.Errors);
+        }
+        else
+        {
+            TempData["SuccessMessage"] = $"Đã chuyển trạng thái ticket sang '{target}'.";
+        }
+
+        return RedirectToAction(nameof(Detail), new { id = model.TicketId });
+    }
+
+    // POST: /Ticket/AddMessage
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddMessage(AddTicketMessageViewModel model)
+    {
+        if (string.IsNullOrWhiteSpace(model.Content))
+        {
+            TempData["ErrorMessage"] = "Nội dung phản hồi hoặc ghi chú không được để trống.";
+            return RedirectToAction(nameof(Detail), new { id = model.TicketId });
+        }
+
+        var result = await _messageService.AddMessageAsync(
+            new AddMessageRequest(model.TicketId, model.Content, model.IsInternal),
+            _currentUser.UserId!);
+
+        if (!result.Succeeded)
+        {
+            TempData["ErrorMessage"] = string.Join("; ", result.Errors);
+        }
+        else
+        {
+            TempData["SuccessMessage"] = model.IsInternal
+                ? "Đã thêm ghi chú nội bộ thành công."
+                : "Đã đăng tin nhắn phản hồi thành công.";
         }
 
         return RedirectToAction(nameof(Detail), new { id = model.TicketId });

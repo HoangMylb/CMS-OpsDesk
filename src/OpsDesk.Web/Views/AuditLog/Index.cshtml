@@ -1,0 +1,168 @@
+@model OpsDesk.Web.ViewModels.AuditLog.AuditLogListViewModel
+@{
+    ViewData["Title"] = "Nhật ký kiểm toán (Audit Log)";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h4 fw-bold mb-1">Nhật ký kiểm toán (Audit Log)</h1>
+        <p class="text-muted small mb-0">Hệ thống ghi nhận bất biến mọi hành động quan trọng trên hệ thống</p>
+    </div>
+    <span class="badge bg-secondary-subtle text-secondary py-2 px-3">
+        <i class="bi bi-shield-lock-fill me-1"></i>Chế độ chỉ đọc (Read-only)
+    </span>
+</div>
+
+<!-- Bộ lọc tìm kiếm -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted">Hành động (Action)</label>
+                <input type="text" name="action" value="@Model.Action" class="form-control form-control-sm" 
+                       placeholder="TicketCreated, RoleUpdated..." />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted">Loại đối tượng (Entity)</label>
+                <select name="entityName" class="form-select form-select-sm">
+                    <option value="">-- Tất cả đối tượng --</option>
+                    <option value="Ticket" selected="@(Model.EntityName == "Ticket")">Ticket</option>
+                    <option value="TicketMessage" selected="@(Model.EntityName == "TicketMessage")">TicketMessage</option>
+                    <option value="Customer" selected="@(Model.EntityName == "Customer")">Customer</option>
+                    <option value="ApplicationUser" selected="@(Model.EntityName == "ApplicationUser")">ApplicationUser</option>
+                    <option value="IdentityRole" selected="@(Model.EntityName == "IdentityRole")">IdentityRole</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold text-muted">Từ ngày</label>
+                <input type="date" name="fromDate" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" />
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold text-muted">Đến ngày</label>
+                <input type="date" name="toDate" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" />
+            </div>
+
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                    <i class="bi bi-filter me-1"></i>Lọc
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="Đặt lại">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bảng Audit Log -->
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 170px;">Thời gian</th>
+                    <th style="width: 160px;">Người thực hiện</th>
+                    <th style="width: 180px;">Hành động</th>
+                    <th style="width: 150px;">Đối tượng</th>
+                    <th>Chi tiết thay đổi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-journal-x display-6 d-block mb-2 text-secondary"></i>
+                            Không có bản ghi nhật ký kiểm toán nào.
+                        </td>
+                    </tr>
+                }
+                @foreach (var log in Model.Items)
+                {
+                    <tr>
+                        <td class="text-muted font-monospace">
+                            @log.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@log.UserName</div>
+                            @if (!string.IsNullOrEmpty(log.IPAddress))
+                            {
+                                <small class="text-muted font-monospace">@log.IPAddress</small>
+                            }
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border font-monospace">@log.Action</span>
+                        </td>
+                        <td>
+                            <span class="fw-medium">@log.EntityName</span>
+                            <span class="text-muted font-monospace">#@log.EntityId</span>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(log.NewValues))
+                            {
+                                <details>
+                                    <summary class="text-primary cursor-pointer">Xem dữ liệu JSON</summary>
+                                    <pre class="bg-light p-2 rounded mt-1 mb-0 border" style="font-size: 11px; max-height: 150px; overflow-y: auto;">@log.NewValues</pre>
+                                </details>
+                            }
+                            else if (!string.IsNullOrEmpty(log.OldValues))
+                            {
+                                <details>
+                                    <summary class="text-secondary cursor-pointer">Xem giá trị cũ</summary>
+                                    <pre class="bg-light p-2 rounded mt-1 mb-0 border" style="font-size: 11px; max-height: 150px; overflow-y: auto;">@log.OldValues</pre>
+                                </details>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="card-footer bg-transparent border-top py-3 d-flex justify-content-between align-items-center">
+            <div class="text-muted small">
+                Hiển thị trang @Model.Page / @Model.TotalPages (Tổng cộng @Model.TotalCount bản ghi)
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" 
+                           asp-route-page="@(Model.Page - 1)" 
+                           asp-route-action="@Model.Action"
+                           asp-route-entityName="@Model.EntityName"
+                           asp-route-fromDate="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
+                           asp-route-toDate="@(Model.ToDate?.ToString("yyyy-MM-dd"))">Trước</a>
+                    </li>
+                    @for (int p = 1; p <= Model.TotalPages; p++)
+                    {
+                        <li class="page-item @(p == Model.Page ? "active" : "")">
+                            <a class="page-link" asp-action="Index" 
+                               asp-route-page="@p"
+                               asp-route-action="@Model.Action"
+                               asp-route-entityName="@Model.EntityName"
+                               asp-route-fromDate="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
+                               asp-route-toDate="@(Model.ToDate?.ToString("yyyy-MM-dd"))">@p</a>
+                        </li>
+                    }
+                    <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" 
+                           asp-route-page="@(Model.Page + 1)"
+                           asp-route-action="@Model.Action"
+                           asp-route-entityName="@Model.EntityName"
+                           asp-route-fromDate="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
+                           asp-route-toDate="@(Model.ToDate?.ToString("yyyy-MM-dd"))">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
+</div>

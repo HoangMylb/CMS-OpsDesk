@@ -9,28 +9,37 @@ public class RoleService : IRoleService
 {
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IAuditService _auditService;
+    private readonly ICacheService _cache;
+    private const string AllRolesCacheKey = "all_roles_with_permissions";
 
-    public RoleService(RoleManager<IdentityRole> roleManager, IAuditService auditService)
+    public RoleService(
+        RoleManager<IdentityRole> roleManager,
+        IAuditService auditService,
+        ICacheService cache)
     {
         _roleManager = roleManager;
         _auditService = auditService;
+        _cache = cache;
     }
 
     public async Task<List<RoleWithPermissions>> GetAllWithPermissionsAsync()
     {
-        var result = new List<RoleWithPermissions>();
-        var roles = await _roleManager.Roles.ToListAsync();
-
-        foreach (var role in roles.OrderBy(r => r.Name))
+        return await _cache.GetOrCreateAsync(AllRolesCacheKey, async () =>
         {
-            var claims = await _roleManager.GetClaimsAsync(role);
-            result.Add(new RoleWithPermissions(
-                role.Id,
-                role.Name ?? string.Empty,
-                claims.Where(c => c.Type == "Permission").Select(c => c.Value).ToList()));
-        }
+            var result = new List<RoleWithPermissions>();
+            var roles = await _roleManager.Roles.AsNoTracking().ToListAsync();
 
-        return result;
+            foreach (var role in roles.OrderBy(r => r.Name))
+            {
+                var claims = await _roleManager.GetClaimsAsync(role);
+                result.Add(new RoleWithPermissions(
+                    role.Id,
+                    role.Name ?? string.Empty,
+                    claims.Where(c => c.Type == "Permission").Select(c => c.Value).ToList()));
+            }
+
+            return result;
+        }, TimeSpan.FromMinutes(10));
     }
 
     public async Task<RoleWithPermissions?> GetByIdAsync(string id)
@@ -54,6 +63,8 @@ public class RoleService : IRoleService
         if (!result.Succeeded)
             return ServiceResult.Failure(result.Errors.Select(e => e.Description));
 
+        _cache.Remove(AllRolesCacheKey);
+
         await _auditService.LogAsync(null, "RoleCreated", "IdentityRole", roleName,
             newValues: new { Name = roleName });
 
@@ -66,7 +77,6 @@ public class RoleService : IRoleService
         if (role is null) return ServiceResult.Failure("Không tìm thấy vai trò.");
 
         // Xóa toàn bộ permission claims cũ, rồi gán lại
-        // Đây là cách đơn giản và an toàn nhất: replace toàn bộ thay vì diff
         var existing = await _roleManager.GetClaimsAsync(role);
         foreach (var claim in existing.Where(c => c.Type == "Permission"))
             await _roleManager.RemoveClaimAsync(role, claim);
@@ -74,6 +84,8 @@ public class RoleService : IRoleService
         var permList = permissions.ToList();
         foreach (var permission in permList)
             await _roleManager.AddClaimAsync(role, new Claim("Permission", permission));
+
+        _cache.Remove(AllRolesCacheKey);
 
         await _auditService.LogAsync(null, "RolePermissionsUpdated", "IdentityRole", roleId,
             newValues: new { role.Name, Permissions = permList });
@@ -89,6 +101,8 @@ public class RoleService : IRoleService
         var result = await _roleManager.DeleteAsync(role);
         if (!result.Succeeded)
             return ServiceResult.Failure(result.Errors.Select(e => e.Description));
+
+        _cache.Remove(AllRolesCacheKey);
 
         return ServiceResult.Success();
     }
