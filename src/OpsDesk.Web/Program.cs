@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpsDesk.Core.Entities;
 using OpsDesk.Infrastructure.Data;
+using OpsDesk.Infrastructure.Seeding;
 using OpsDesk.Web.Authorization;
+using OpsDesk.Web.Filters;
 using OpsDesk.Web.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -88,6 +90,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<DatabaseSeeder>();
 
 // Business services will be registered here as we implement each phase.
 // e.g.:
@@ -100,13 +103,16 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 builder.Services.AddControllersWithViews(options =>
 {
-    // Global anti-forgery filter — every POST, PUT, DELETE automatically
-    // requires a valid anti-forgery token. This prevents CSRF attacks
-    // without having to add [ValidateAntiForgeryToken] to every action.
+    // Global anti-forgery filter
     var policy = new Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter(
         new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build()
     );
     options.Filters.Add(policy);
+
+    // Global filter kiểm tra IsActive mỗi request.
+    // Đây là cơ chế đảm bảo nhân viên bị vô hiệu hóa không thể tiếp tục dùng hệ thống
+    // dù cookie của họ vẫn còn hiệu lực.
+    options.Filters.Add<ActiveUserFilter>();
 });
 
 var app = builder.Build();
@@ -156,9 +162,11 @@ using (var scope = app.Services.CreateScope())
 
     if (app.Environment.IsDevelopment())
     {
-        // Apply any pending migrations automatically in development.
-        // In production, migrations should be run as a deployment step, not at startup.
         await db.Database.MigrateAsync();
+
+        // Seed dữ liệu demo — chỉ trong development
+        var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+        await seeder.SeedAsync();
     }
 }
 

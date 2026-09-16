@@ -1,50 +1,164 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - OpsDesk.Web</title>
-    <script type="importmap"></script>
+    <meta name="description" content="OpsDesk — Hệ thống quản lý hỗ trợ khách hàng nội bộ" />
+    <title>@ViewData["Title"] — OpsDesk</title>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/OpsDesk.Web.styles.css" asp-append-version="true" />
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">OpsDesk.Web</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - OpsDesk.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <!-- ================================================================
+         NAVBAR — chỉ hiện với user đã đăng nhập
+         Navigation links được ẩn/hiện theo permission (chỉ UX, không phải security)
+         Security thực sự được thực thi ở controller/action level
+    ================================================================ -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container-fluid px-4">
+            <!-- Brand -->
+            <a class="navbar-brand fw-bold" asp-controller="Dashboard" asp-action="Index">
+                <i class="bi bi-headset me-2"></i>OpsDesk
+            </a>
+
+            <button class="navbar-toggler" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#navbarMain">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto">
+
+                    <!-- Dashboard: mọi nhân viên đều thấy -->
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Dashboard" asp-action="Index">
+                            <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                        </a>
+                    </li>
+
+                    <!-- Tickets -->
+                    @if (User.HasClaim("Permission", "Ticket.ViewAll") ||
+                         User.HasClaim("Permission", "Ticket.ViewAssigned"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Ticket" asp-action="Index">
+                                <i class="bi bi-ticket-detailed me-1"></i>Tickets
+                            </a>
+                        </li>
+                    }
+
+                    <!-- Customers -->
+                    @if (User.HasClaim("Permission", "Customer.View"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Customer" asp-action="Index">
+                                <i class="bi bi-people me-1"></i>Khách hàng
+                            </a>
+                        </li>
+                    }
+
+                    <!-- Employees — chỉ Admin/Manager -->
+                    @if (User.HasClaim("Permission", "Employee.View"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Employee" asp-action="Index">
+                                <i class="bi bi-person-badge me-1"></i>Nhân viên
+                            </a>
+                        </li>
+                    }
+
+                    <!-- Roles — chỉ Admin -->
+                    @if (User.HasClaim("Permission", "Role.View"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Role" asp-action="Index">
+                                <i class="bi bi-shield-lock me-1"></i>Phân quyền
+                            </a>
+                        </li>
+                    }
+
+                    <!-- Audit Log — chỉ Admin -->
+                    @if (User.HasClaim("Permission", "Audit.View"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="AuditLog" asp-action="Index">
+                                <i class="bi bi-journal-text me-1"></i>Audit Log
+                            </a>
+                        </li>
+                    }
+
+                </ul>
+
+                <!-- User menu -->
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#"
+                           data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i>
+                            @User.Identity.Name
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">
+                                    <i class="bi bi-key me-2"></i>Đổi mật khẩu
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form asp-controller="Account" asp-action="Logout" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
         </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+    </nav>
+}
+
+<!-- ================================================================
+     MAIN CONTENT
+================================================================ -->
+<main class="@(User.Identity?.IsAuthenticated == true ? "container-fluid px-4 py-4" : "")">
+
+    <!-- Alert messages từ TempData -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @RenderBody()
+</main>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

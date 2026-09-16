@@ -1,0 +1,38 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h4 fw-bold mb-0">
+            <i class="bi bi-speedometer2 text-primary me-2"></i>Dashboard
+        </h1>
+        <p class="text-muted small mb-0">Xin chào, @User.Identity?.Name!</p>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>
+    Dashboard đang được xây dựng — sẽ hoàn thiện trong Phase 14.
+    <br />
+    <strong>Đăng nhập thành công!</strong> Hệ thống xác thực đang hoạt động đúng.
+</div>
+
+<!-- Thông tin tài khoản hiện tại (debug info) -->
+<div class="card mt-3">
+    <div class="card-header">Thông tin phiên đăng nhập</div>
+    <div class="card-body">
+        <dl class="row small mb-0">
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@User.Identity?.Name</dd>
+
+            <dt class="col-sm-3">Permissions</dt>
+            <dd class="col-sm-9">
+                @foreach (var claim in User.Claims.Where(c => c.Type == "Permission"))
+                {
+                    <span class="badge bg-secondary me-1 mb-1">@claim.Value</span>
+                }
+            </dd>
+        </dl>
+    </div>
+</div>
