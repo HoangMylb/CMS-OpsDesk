@@ -56,7 +56,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "Email và mật khẩu không được để trống." });
         }
 
-        var user = await _userManager.FindByEmailAsync(request.Email.Trim());
+        var user = await _userManager.FindByEmailAsync(request.Email.Trim()) ?? await _userManager.FindByNameAsync(request.Email.Trim());
         if (user is null)
         {
             return Unauthorized(new { message = "Email hoặc mật khẩu không chính xác." });

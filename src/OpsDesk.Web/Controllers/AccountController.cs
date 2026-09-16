@@ -59,10 +59,8 @@ public class AccountController : Controller
         if (!ModelState.IsValid)
             return View(model);
 
-        // Tìm user theo email
-        // Lý do: Identity mặc định dùng UserName để đăng nhập,
-        // nhưng ta muốn dùng Email vì trực quan hơn.
-        var user = await _userManager.FindByEmailAsync(model.Email);
+        // Tìm user theo email hoặc tên đăng nhập
+        var user = await _userManager.FindByEmailAsync(model.Email) ?? await _userManager.FindByNameAsync(model.Email);
 
         if (user == null)
         {

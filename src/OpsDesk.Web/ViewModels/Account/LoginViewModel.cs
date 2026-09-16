@@ -12,9 +12,8 @@ namespace OpsDesk.Web.ViewModels.Account;
 /// </summary>
 public class LoginViewModel
 {
-    [Required(ErrorMessage = "Email là bắt buộc")]
-    [EmailAddress(ErrorMessage = "Email không hợp lệ")]
-    [Display(Name = "Email")]
+    [Required(ErrorMessage = "Email hoặc Tên đăng nhập là bắt buộc")]
+    [Display(Name = "Email hoặc Tên đăng nhập")]
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Mật khẩu là bắt buộc")]

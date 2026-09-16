@@ -33,7 +33,7 @@ public class JwtService : IJwtService
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new(JwtRegisteredClaimNames.Name, user.FullName ?? string.Empty),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new("departmentId", user.DepartmentId.ToString()),
+            new("departmentId", user.DepartmentId?.ToString() ?? string.Empty),
             new("isActive", user.IsActive.ToString().ToLower())
         };
 

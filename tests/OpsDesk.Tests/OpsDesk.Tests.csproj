@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -23,6 +23,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\OpsDesk.Core\OpsDesk.Core.csproj" />
     <ProjectReference Include="..\..\src\OpsDesk.Infrastructure\OpsDesk.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>

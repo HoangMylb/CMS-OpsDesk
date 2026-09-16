@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using OpsDesk.Core.Authorization;
 using OpsDesk.Core.Entities;
@@ -21,17 +22,20 @@ public class DatabaseSeeder
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<DatabaseSeeder> _logger;
 
     public DatabaseSeeder(
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
+        IConfiguration configuration,
         ILogger<DatabaseSeeder> logger)
     {
         _db = db;
         _userManager = userManager;
         _roleManager = roleManager;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -40,6 +44,7 @@ public class DatabaseSeeder
         await SeedDepartmentsAsync();
         await SeedRolesAndPermissionsAsync();
         await SeedUsersAsync();
+        await SeedAdminUsersFromConfigAsync();
         await SeedCustomersAsync();
         await SeedTicketsAndMessagesAsync();
     }
@@ -187,6 +192,130 @@ public class DatabaseSeeder
             {
                 await _userManager.AddToRoleAsync(user, userData.Role);
                 _logger.LogInformation("Seeded user: {Email} with role {Role}", userData.Email, userData.Role);
+            }
+        }
+    }
+
+    private async Task SeedAdminUsersFromConfigAsync()
+    {
+        var adminUsersSection = _configuration.GetSection("AdminUsers");
+        if (!adminUsersSection.Exists())
+        {
+            return;
+        }
+
+        var children = adminUsersSection.GetChildren().ToList();
+        if (children.Count == 0) return;
+
+        var managementDept = await _db.Departments.FirstOrDefaultAsync(d => d.Name == "Executive & Management");
+
+        foreach (var userSection in children)
+        {
+            var userName = userSection["UserName"];
+            var email = userSection["Email"];
+            var password = userSection["Password"];
+            var roles = userSection.GetSection("Roles").GetChildren()
+                .Select(r => r.Value)
+                .Where(r => !string.IsNullOrWhiteSpace(r))
+                .Select(r => r!)
+                .ToList();
+
+            if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            {
+                continue;
+            }
+
+            // Ensure specified roles exist and have full administrative permissions
+            foreach (var roleName in roles)
+            {
+                var role = await _roleManager.FindByNameAsync(roleName);
+                if (role is null)
+                {
+                    role = new IdentityRole(roleName);
+                    await _roleManager.CreateAsync(role);
+                    _logger.LogInformation("Created configured role: {RoleName}", roleName);
+                }
+
+                // Grant all permissions to administrative roles
+                var existingClaims = await _roleManager.GetClaimsAsync(role);
+                var existingPerms = existingClaims
+                    .Where(c => c.Type == "Permission")
+                    .Select(c => c.Value)
+                    .ToHashSet();
+
+                foreach (var perm in Permissions.GetAll())
+                {
+                    if (!existingPerms.Contains(perm))
+                    {
+                        await _roleManager.AddClaimAsync(role, new Claim("Permission", perm));
+                    }
+                }
+            }
+
+            // Find user by Email or UserName
+            var user = await _userManager.FindByEmailAsync(email) ?? await _userManager.FindByNameAsync(userName);
+            if (user is null)
+            {
+                user = new ApplicationUser
+                {
+                    UserName = userName,
+                    Email = email,
+                    FullName = userName,
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    DepartmentId = managementDept?.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                var createResult = await _userManager.CreateAsync(user, password);
+                if (createResult.Succeeded)
+                {
+                    foreach (var roleName in roles)
+                    {
+                        var role = await _roleManager.FindByNameAsync(roleName);
+                        var targetRole = role?.Name ?? roleName;
+                        if (!await _userManager.IsInRoleAsync(user, targetRole))
+                        {
+                            await _userManager.AddToRoleAsync(user, targetRole);
+                        }
+                    }
+                    _logger.LogInformation("Seeded configured admin user: {UserName} ({Email}) with roles: {Roles}",
+                        userName, email, string.Join(", ", roles));
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to create admin user {UserName}: {Errors}",
+                        userName, string.Join(", ", createResult.Errors.Select(e => e.Description)));
+                }
+            }
+            else
+            {
+                bool updated = false;
+                if (!user.EmailConfirmed)
+                {
+                    user.EmailConfirmed = true;
+                    updated = true;
+                }
+                if (!user.IsActive)
+                {
+                    user.IsActive = true;
+                    updated = true;
+                }
+                if (updated)
+                {
+                    await _userManager.UpdateAsync(user);
+                }
+
+                foreach (var roleName in roles)
+                {
+                    var role = await _roleManager.FindByNameAsync(roleName);
+                    var targetRole = role?.Name ?? roleName;
+                    if (!await _userManager.IsInRoleAsync(user, targetRole))
+                    {
+                        await _userManager.AddToRoleAsync(user, targetRole);
+                        _logger.LogInformation("Added role {Role} to configured admin user {UserName}", targetRole, userName);
+                    }
+                }
             }
         }
     }
