@@ -132,6 +132,17 @@ builder.Services.AddScoped<OpsDesk.Core.Services.ITicketWorkflowService, OpsDesk
 builder.Services.AddScoped<OpsDesk.Core.Services.ITicketMessageService, OpsDesk.Infrastructure.Services.TicketMessageService>();
 builder.Services.AddScoped<OpsDesk.Core.Services.IDashboardService, OpsDesk.Infrastructure.Services.DashboardService>();
 
+// CORS configuration — Allow all origins, methods, and headers
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // ============================================================
 // MVC
 // ============================================================
@@ -193,6 +204,7 @@ if (!app.Environment.IsProduction())
 
 app.UseStaticFiles();   // serve wwwroot (Bootstrap, CSS, JS)
 app.UseRouting();
+app.UseCors("AllowAll");
 
 // Authentication must come before Authorization.
 // Without UseAuthentication, the cookie is never parsed and User is always anonymous.
