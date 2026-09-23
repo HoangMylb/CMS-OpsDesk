@@ -1,10 +1,9 @@
 # OpsDesk — Internal Customer Support & Operations Management System
 
-> A production-style, enterprise-grade portfolio implementation built with **.NET 9**, **ASP.NET Core MVC**, **Entity Framework Core 9**, **Microsoft SQL Server**, **ASP.NET Core Identity**, and **Bootstrap 5**.
+> A portfolio implementation of an internal support and operations system, built with **.NET 9**, **ASP.NET Core MVC**, **Entity Framework Core 9**, **SQL Server**, **ASP.NET Core Identity**, and **Bootstrap 5**.
 
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/)
 [![EF Core 9](https://img.shields.io/badge/EF%20Core-9.0-blue.svg)](https://learn.microsoft.com/ef/core/)
-[![Tests](https://img.shields.io/badge/Unit%20%26%20Integration%20Tests-30%20Passed-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
@@ -239,22 +238,23 @@ OpsDesk/
 
 ### Step 1: Clone Repository
 ```bash
-git clone https://github.com/your-username/OpsDesk.git
-cd OpsDesk
+git clone https://github.com/HoangMylb/CMS-OpsDesk.git
+cd CMS-OpsDesk
 ```
 
 ### Step 2: Start SQL Server via Docker
 ```bash
 docker compose up -d
 ```
-*SQL Server will be available on `localhost,1434` with credentials configured in `docker-compose.yml`.*
+*Set `MSSQL_SA_PASSWORD` in your shell or a local `.env` file first. SQL Server is exposed on `localhost,1434`.*
 
 ### Step 3: Run Database Migrations & Seed Data
 ```bash
 cd src/OpsDesk.Web
+cp appsettings.Development.example.json appsettings.Development.json
 dotnet run
 ```
-*On initial startup in `Development` environment, EF Core automatically applies pending migrations and runs `DatabaseSeeder`.*
+*Replace the placeholders in the local configuration file (or use user secrets) before running. On initial startup in `Development`, EF Core applies pending migrations. Demo users are seeded only when `DemoSeed:Password` is configured.*
 
 ### Step 4: Access the Application
 Open your browser and navigate to:
@@ -264,16 +264,9 @@ http://localhost:5220
 
 ---
 
-## 8. Default Demo Credentials
+## 8. Configuration and demo data
 
-All accounts are pre-seeded in the `Development` environment:
-
-| Role | Email | Password | Primary Capabilities |
-|---|---|---|---|
-| **Admin** | `admin@opsdesk.local` | `Admin@123456` | Full system access, employee management, role permissions, audit log |
-| **Manager** | `manager@opsdesk.local` | `Manager@123456` | Ticket assignment, close/reopen tickets, customer management |
-| **Support Agent 1** | `agent1@opsdesk.local` | `Agent@123456` | Work on assigned tickets, add notes, transition to Resolved |
-| **Support Agent 2** | `agent2@opsdesk.local` | `Agent@123456` | Work on assigned tickets, add notes, transition to Resolved |
+Secrets are intentionally not committed. Configure the SQL Server connection string and `Jwt:Key` through user secrets, environment variables or a local `appsettings.Development.json` copied from the example. For a local demo, set `DemoSeed:Password`; do not use demo credentials outside your own development environment.
 
 ---
 

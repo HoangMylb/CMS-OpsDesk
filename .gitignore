@@ -14,6 +14,7 @@ obj/
 
 ## Secrets — NEVER commit these
 appsettings.Production.json
+appsettings.Development.json
 **/secrets.json
 
 ## EF Core migrations snapshot (keep the Migrations folder, not the designer files)
