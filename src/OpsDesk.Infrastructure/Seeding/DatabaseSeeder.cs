@@ -131,6 +131,12 @@ public class DatabaseSeeder
 
     private async Task SeedUsersAsync()
     {
+        if (!bool.TryParse(_configuration["DemoSeed:Enabled"], out var demoSeedEnabled) || !demoSeedEnabled)
+        {
+            _logger.LogInformation("Skipping demo-user seeding because DemoSeed:Enabled is false.");
+            return;
+        }
+
         var demoPassword = _configuration["DemoSeed:Password"];
         if (string.IsNullOrWhiteSpace(demoPassword))
         {
@@ -145,24 +151,16 @@ public class DatabaseSeeder
         {
             new
             {
-                FullName = "Sarah Jenkins",
-                Email = "manager@hoangmy.vn",
+                FullName = "Morgan Lee",
+                Email = PortfolioDemoAccounts.ManagerEmail,
                 Password = demoPassword,
                 Role = "Manager",
                 Department = managementDept,
             },
             new
             {
-                FullName = "Alex Rivera",
-                Email = "agent1@hoangmy.vn",
-                Password = demoPassword,
-                Role = "SupportAgent",
-                Department = supportDept,
-            },
-            new
-            {
-                FullName = "David Chen",
-                Email = "agent2@hoangmy.vn",
+                FullName = "Casey Nguyen",
+                Email = PortfolioDemoAccounts.SupportAgentEmail,
                 Password = demoPassword,
                 Role = "SupportAgent",
                 Department = supportDept,

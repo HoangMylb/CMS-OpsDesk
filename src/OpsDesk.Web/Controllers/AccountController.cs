@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using OpsDesk.Core.Entities;
+using OpsDesk.Infrastructure.Seeding;
 using OpsDesk.Web.ViewModels.Account;
 
 namespace OpsDesk.Web.Controllers;
@@ -14,15 +15,18 @@ public class AccountController : Controller
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<AccountController> _logger;
+    private readonly IConfiguration _configuration;
 
     public AccountController(
         SignInManager<ApplicationUser> signInManager,
         UserManager<ApplicationUser> userManager,
-        ILogger<AccountController> logger)
+        ILogger<AccountController> logger,
+        IConfiguration configuration)
     {
         _signInManager = signInManager;
         _userManager = userManager;
         _logger = logger;
+        _configuration = configuration;
     }
 
     // ================================================================
@@ -132,6 +136,15 @@ public class AccountController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null)
             return RedirectToAction("Login");
+
+        // Public accounts are deliberately resettable only by redeploying the isolated demo.
+        // This prevents one reviewer from locking subsequent reviewers out of the portfolio.
+        if (bool.TryParse(_configuration["DemoSeed:Enabled"], out var demoSeedEnabled) && demoSeedEnabled &&
+            PortfolioDemoAccounts.IsPublicDemoEmail(user.Email))
+        {
+            ModelState.AddModelError(string.Empty, "Demo account passwords are managed by the isolated demo environment and cannot be changed.");
+            return View(model);
+        }
 
         var result = await _userManager.ChangePasswordAsync(
             user,

@@ -13,7 +13,12 @@ services:
       - key: AutoMigrate
         value: "true"
       - key: AutoSeed
-        value: "false"
+        value: "true"
+      # Public, disposable portfolio identities; this is not a production credential.
+      - key: DemoSeed__Enabled
+        value: "true"
+      - key: DemoSeed__Password
+        value: "PortfolioDemo!2026"
       - key: ConnectionStrings__DefaultConnection
         sync: false
       - key: Jwt__Key

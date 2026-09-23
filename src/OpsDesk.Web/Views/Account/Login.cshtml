@@ -1,7 +1,11 @@
 @model OpsDesk.Web.ViewModels.Account.LoginViewModel
+@using OpsDesk.Infrastructure.Seeding
+@inject IConfiguration Configuration
 @{
     Layout = "_Layout_Simple";
     ViewData["Title"] = "Sign In";
+    var demoPassword = Configuration["DemoSeed:Password"];
+    var showDemoAccounts = bool.TryParse(Configuration["DemoSeed:Enabled"], out var demoSeedEnabled) && demoSeedEnabled && !string.IsNullOrWhiteSpace(demoPassword);
 }
 
 <div class="container-xxl">
@@ -82,6 +86,25 @@
                             </button>
                         </div>
                     </form>
+
+                    @if (showDemoAccounts)
+                    {
+                        <section class="border-top pt-3 mt-4" aria-labelledby="demo-accounts-heading">
+                            <h5 id="demo-accounts-heading" class="mb-1">Demo Accounts</h5>
+                            <p class="small text-muted mb-3">Public, disposable accounts for reviewing role-based permissions and ticket workflows.</p>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                        <tr><th scope="col">Role</th><th scope="col">Email</th><th scope="col">Password</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>Manager</td><td><code>@PortfolioDemoAccounts.ManagerEmail</code></td><td><code>@demoPassword</code></td></tr>
+                                        <tr><td>Support Agent</td><td><code>@PortfolioDemoAccounts.SupportAgentEmail</code></td><td><code>@demoPassword</code></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    }
 
                 </div>
             </div>

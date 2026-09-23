@@ -254,7 +254,7 @@ cd src/OpsDesk.Web
 cp appsettings.Development.example.json appsettings.Development.json
 dotnet run
 ```
-*Replace the placeholders in the local configuration file (or use user secrets) before running. On initial startup in `Development`, EF Core applies pending migrations. Demo users are seeded only when `DemoSeed:Password` is configured.*
+*Replace the placeholders in the local configuration file (or use user secrets) before running. On initial startup in `Development`, EF Core applies pending migrations. Demo users require both `DemoSeed:Enabled=true` and `DemoSeed:Password`; production does not seed unless `AutoSeed=true` is deliberately configured.*
 
 ### Step 4: Access the Application
 Open your browser and navigate to:
@@ -264,13 +264,26 @@ http://localhost:5220
 
 ---
 
-## 8. Configuration and demo data
+## 8. Live Demo
 
-Secrets are intentionally not committed. Configure the SQL Server connection string and `Jwt:Key` through user secrets, environment variables or a local `appsettings.Development.json` copied from the example. For a local demo, set `DemoSeed:Password`; do not use demo credentials outside your own development environment.
+The hosted portfolio is an isolated demo environment populated with sample departments, customers, tickets, and audit history. It contains no production or customer data. The credentials below are intentionally public and disposable so recruiters can exercise the real sign-in flow and compare server-enforced permissions.
+
+| Role | Email | Password | What to review |
+|---|---|---|---|
+| Manager | `demo.manager@opsdesk.example` | `PortfolioDemo!2026` | Customer management, team ticket visibility, assignment, close/reopen workflow |
+| Support Agent | `demo.agent@opsdesk.example` | `PortfolioDemo!2026` | Assigned-ticket workflow, ticket updates, resolution, restricted management access |
+
+The public demo intentionally has no Admin account. This allows permission differences to be reviewed without exposing employee, role, or audit administration to anonymous visitors. Demo-account passwords cannot be changed in the demo environment, preventing one reviewer from locking out the next. The sign-in process remains normal cookie-based authentication; credentials do not auto-login a reviewer.
+
+## 9. Configuration and demo data
+
+Secrets are intentionally not committed. Configure the SQL Server connection string and `Jwt:Key` through user secrets, environment variables or a local `appsettings.Development.json` copied from the example.
+
+`DemoSeed:Enabled` is false by default. The portfolio deployment explicitly enables it and supplies the public, disposable demo password above; that value is not a database, JWT, hosting, or production credential. Keep `AutoSeed` false in any non-demo production environment.
 
 ---
 
-## 9. API Reference: JWT Authentication
+## 10. API Reference: JWT Authentication
 
 For external clients, SPA frontends, or automated tools:
 
