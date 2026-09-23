@@ -13,7 +13,7 @@ services:
       - key: AutoMigrate
         value: "true"
       - key: AutoSeed
-        value: "true"
+        value: "false"
       - key: ConnectionStrings__DefaultConnection
         sync: false
       - key: Jwt__Key

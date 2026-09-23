@@ -226,15 +226,18 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+    // Production migrations are opt-in. The deployment manifest can enable this
+    // deliberately, while an environment with no setting cannot mutate its schema.
     var shouldMigrate = app.Environment.IsDevelopment() ||
-                        app.Configuration.GetValue<bool>("AutoMigrate", true);
+                        app.Configuration.GetValue<bool>("AutoMigrate", false);
 
     if (shouldMigrate)
     {
         await db.Database.MigrateAsync();
 
+        // Never introduce demo data in production unless explicitly requested.
         var shouldSeed = app.Environment.IsDevelopment() ||
-                         app.Configuration.GetValue<bool>("AutoSeed", true);
+                         app.Configuration.GetValue<bool>("AutoSeed", false);
 
         if (shouldSeed)
         {
