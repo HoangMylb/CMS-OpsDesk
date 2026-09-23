@@ -223,9 +223,9 @@ OpsDesk/
 │       └── Program.cs                    # Application composition root
 │
 └── tests/
-    └── OpsDesk.Tests/                    # Automated Test Suite (30 Tests)
+└── OpsDesk.Tests/                    # Automated Test Suite
         ├── Unit/                         # SlaServiceTests, TicketWorkflowTests, TicketMessageTests
-        └── Integration/                  # TicketConcurrencyTests, TicketAssignmentTests, CustomerTests
+    └── Integration/                  # Workflow persistence, concurrency, assignment and customer rules
 ```
 
 ---
@@ -280,8 +280,8 @@ POST /api/auth/token HTTP/1.1
 Content-Type: application/json
 
 {
-  "email": "admin@opsdesk.local",
-  "password": "Admin@123456"
+  "email": "<configured-demo-email>",
+  "password": "<configured-demo-password>"
 }
 ```
 
@@ -318,6 +318,15 @@ dotnet test
 - **Workflow State Machine**: 100% transition matrix verification (all valid transitions accept; invalid transitions fail with deterministic errors).
 - **Concurrency Protection**: Verifies `DbUpdateConcurrencyException` when updating rows with mismatched row version tokens.
 - **Security & Business Rules**: Enforces rejection of assignments to inactive employees; rejects duplicate customer email registrations.
+- **Workflow Persistence**: Verifies a resolution writes its timestamp, immutable status-history entry, and audit trail in one Unit of Work transaction; invalid transitions write none of these side effects.
+
+### Testing Strategy
+
+Tests focus on observable business outcomes rather than framework internals: the SLA matrix, ticket state transitions, assignments, customer validation, optimistic-concurrency failure handling, and workflow persistence. EF Core's InMemory provider is used for service-level integration tests; SQL Server-specific behavior remains covered by the production configuration and should be exercised with a disposable SQL Server container before a production release.
+
+### Concurrency Strategy
+
+`Ticket.RowVersion` is a SQL Server `rowversion` concurrency token. The edit form round-trips its Base64 value; EF includes it in the update predicate and the service converts a `DbUpdateConcurrencyException` into actionable feedback rather than overwriting newer work.
 
 ---
 
@@ -331,6 +340,18 @@ dotnet test
    Wrapping business operations in `IUnitOfWork.ExecuteTransactionAsync` guarantees that multi-step mutations (e.g., ticket state transition + history record + audit log) commit atomically or roll back cleanly, while keeping database transaction durations strictly minimized to prevent lock contention.
 4. **Why AsNoTracking and LINQ Projections?**
    Tracking entities in memory incurs significant garbage collection and change-tracker overhead. Using `.AsNoTracking()` with `.Select()` projections generates lean SQL queries that fetch only the columns displayed on screen, resolving N+1 overhead at the root.
+
+## 12. Production Safety and Trade-offs
+
+- Migrations and demo seeding are automatic in `Development`. In production, both are opt-in configuration values; the Render manifest explicitly enables migrations and disables seeding.
+- Permission claims are read from the authenticated principal, avoiding a database query per request. The trade-off is that permission changes take effect at the next sign-in.
+- The project is a modular monolith: it keeps transactions and authorization logic close to the workflow without adding distributed-system complexity that the portfolio scope does not need.
+
+## 13. What I Would Improve Next
+
+1. Run the same workflow and concurrency tests against a disposable SQL Server container in CI.
+2. Add controller-level authorization tests for the highest-risk mutation endpoints.
+3. Add health-check dependency reporting appropriate for the production host without exposing database details.
 
 ---
 
