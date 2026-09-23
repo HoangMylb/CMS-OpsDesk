@@ -78,7 +78,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddAuthentication()
     .AddJwtBearer(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme, options =>
     {
-        var jwtKey = builder.Configuration["Jwt:Key"] ?? "OpsDeskSecretSecurityKeyForJwtAuthentication2026!@#$%^OpsDeskSuperSecretKey";
+        var jwtKey = builder.Configuration["Jwt:Key"]
+            ?? throw new InvalidOperationException("Jwt:Key must be configured through user secrets or environment variables.");
         options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
         {
             ValidateIssuer = true,

@@ -131,6 +131,13 @@ public class DatabaseSeeder
 
     private async Task SeedUsersAsync()
     {
+        var demoPassword = _configuration["DemoSeed:Password"];
+        if (string.IsNullOrWhiteSpace(demoPassword))
+        {
+            _logger.LogInformation("Skipping demo-user seeding because DemoSeed:Password is not configured.");
+            return;
+        }
+
         var supportDept = await _db.Departments.FirstOrDefaultAsync(d => d.Name == "Customer Support");
         var managementDept = await _db.Departments.FirstOrDefaultAsync(d => d.Name == "Executive & Management");
 
@@ -140,7 +147,7 @@ public class DatabaseSeeder
             {
                 FullName = "Sarah Jenkins",
                 Email = "manager@hoangmy.vn",
-                Password = "Nguyenmy@2026",
+                Password = demoPassword,
                 Role = "Manager",
                 Department = managementDept,
             },
@@ -148,7 +155,7 @@ public class DatabaseSeeder
             {
                 FullName = "Alex Rivera",
                 Email = "agent1@hoangmy.vn",
-                Password = "Nguyenmy@2026",
+                Password = demoPassword,
                 Role = "SupportAgent",
                 Department = supportDept,
             },
@@ -156,7 +163,7 @@ public class DatabaseSeeder
             {
                 FullName = "David Chen",
                 Email = "agent2@hoangmy.vn",
-                Password = "Nguyenmy@2026",
+                Password = demoPassword,
                 Role = "SupportAgent",
                 Department = supportDept,
             },

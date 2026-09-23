@@ -1,0 +1,19 @@
+name: .NET build and test
+
+on:
+  push:
+    branches: [main, portfolio-cleanup/day-6]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - run: dotnet restore OpsDesk.sln
+      - run: dotnet build OpsDesk.sln --configuration Release --no-restore
+      - run: dotnet test OpsDesk.sln --configuration Release --no-build

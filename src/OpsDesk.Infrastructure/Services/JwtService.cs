@@ -19,7 +19,8 @@ public class JwtService : IJwtService
 
     public string GenerateToken(ApplicationUser user, IList<string> roles, IEnumerable<Claim> permissionClaims)
     {
-        var secretKey = _config["Jwt:Key"] ?? "OpsDeskSecretSecurityKeyForJwtAuthentication2026!@#$%^";
+        var secretKey = _config["Jwt:Key"]
+            ?? throw new InvalidOperationException("Jwt:Key must be configured through user secrets or environment variables.");
         var issuer = _config["Jwt:Issuer"] ?? "OpsDesk";
         var audience = _config["Jwt:Audience"] ?? "OpsDeskClients";
         var expiresMinutes = int.TryParse(_config["Jwt:ExpiresInMinutes"], out var exp) ? exp : 480;
